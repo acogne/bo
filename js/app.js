@@ -285,7 +285,10 @@ async function renderDashboardVehicule() {
 
 function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('service-worker.js').catch((err) => {
+    // updateViaCache: 'none' — sans ça, service-worker.js lui-même hérite du
+    // Cache-Control: max-age=600 de GitHub Pages, et le navigateur peut
+    // mettre jusqu'à 10 min à remarquer qu'une nouvelle version existe.
+    navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' }).catch((err) => {
       console.error('Échec enregistrement du service worker :', err);
     });
   }

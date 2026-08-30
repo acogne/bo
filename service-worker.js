@@ -2,7 +2,7 @@
 // basique. Les appels à l'API Google (Sheets/Calendar/OAuth) ne sont jamais
 // mis en cache — ils doivent toujours passer par le réseau.
 
-const CACHE_NAME = 'dashboard-foyer-v19';
+const CACHE_NAME = 'dashboard-foyer-v20';
 
 const APP_SHELL = [
   './',
@@ -62,8 +62,12 @@ self.addEventListener('fetch', (event) => {
   // Réseau d'abord : pendant que l'app évolue, servir une version en cache
   // périmée casserait des choses silencieusement. Le cache ne sert que de
   // filet de secours si le réseau est indisponible (usage hors-ligne).
+  // cache: 'no-store' contourne aussi le cache HTTP normal du navigateur —
+  // GitHub Pages sert ces fichiers avec Cache-Control: max-age=600, ce qui
+  // sans ça pouvait resservir une version vieille de 10 min malgré ce
+  // handler "network-first" (fetch() respecte le cache HTTP par défaut).
   event.respondWith(
-    fetch(event.request)
+    fetch(event.request, { cache: 'no-store' })
       .then((response) => {
         const clone = response.clone();
         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
