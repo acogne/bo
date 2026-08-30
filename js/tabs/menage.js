@@ -145,6 +145,7 @@
         setTimeout(() => chip.classList.remove('task-chip--done'), 700);
       } else {
         // Quotidien/Hebdo : disparaît de la liste jusqu'au prochain reset.
+        if (freq === 'quotidien') Confetti.burst();
         setTimeout(() => {
           chip.classList.add('task-chip--exit');
           setTimeout(() => {

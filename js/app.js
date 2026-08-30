@@ -232,6 +232,8 @@ async function onDashboardTaskDone(chip, item) {
     if (item.type === 'menage') {
       const updated = { ...item.task, ...TaskReset.markDoneFields() };
       await SheetsAPI.updateRow(CONFIG.SHEETS.MENAGE_TACHES, item.task._rowIndex, updated);
+      const freq = (item.task['Fréquence'] || '').trim().toLowerCase();
+      if (freq === 'quotidien') Confetti.burst();
     } else {
       await ChatTab.markMedicamentDone(item.task);
     }

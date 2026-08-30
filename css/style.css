@@ -323,6 +323,38 @@ body {
   transform: scale(0.92);
 }
 
+/* ---------- Cotillons (tâche Quotidien cochée) ---------- */
+
+.confetti-container {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 999;
+  overflow: hidden;
+}
+
+.confetti-piece {
+  position: absolute;
+  top: -10px;
+  width: 8px;
+  height: 14px;
+  opacity: 0.9;
+  animation-name: confetti-fall;
+  animation-timing-function: ease-in;
+  animation-fill-mode: forwards;
+}
+
+@keyframes confetti-fall {
+  from {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 1;
+  }
+  to {
+    transform: translate(var(--drift, 0px), 100vh) rotate(var(--rotate-end, 720deg));
+    opacity: 0;
+  }
+}
+
 /* ---------- Formulaire d'ajout rapide ---------- */
 
 .quick-add-form {
