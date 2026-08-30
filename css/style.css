@@ -2,22 +2,24 @@
    futur dark mode (il suffira de redéfinir ces variables dans un bloc
    [data-theme="dark"] ou @media (prefers-color-scheme: dark)). */
 :root {
-  --bg: #f2f3f5;
-  --card-bg: #ffffff;
-  --text: #1c1c1e;
-  --text-muted: #6b7280;
-  --border-radius: 16px;
-  --shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  --bg: #f7f3ed;
+  --card-bg: #fffdfa;
+  --text: #3a322c;
+  --text-muted: #8a8074;
+  --border-radius: 22px;
+  --shadow: 0 2px 12px rgba(58, 50, 44, 0.08);
 
-  /* Couleurs d'accent par domaine — utilisées en liseré/icône, jamais en fond plein */
-  --accent-menage: #3b82f6;
-  --accent-courses: #22c55e;
-  --accent-enfant: #f97316;
-  --accent-chat: #a855f7;
-  --accent-jardin: #166534;
-  --accent-bricolage: #78716c;
-  --accent-budget: #ca8a04;
-  --accent-admin: #ef4444;
+  /* Couleurs d'accent par domaine — utilisées en liseré/icône, jamais en fond
+     plein — légèrement désaturées (mélange ~20% vers un gris chaud) pour
+     rester cohérentes avec le fond beige/crème. */
+  --accent-menage: #4c83dd;
+  --accent-courses: #38b863;
+  --accent-enfant: #e4772a;
+  --accent-chat: #a35fde;
+  --accent-jardin: #2e6b42;
+  --accent-bricolage: #7d756e;
+  --accent-budget: #be891b;
+  --accent-admin: #dc514e;
 
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
   --safe-area-top: env(safe-area-inset-top, 0px);
