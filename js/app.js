@@ -227,13 +227,12 @@ function renderDashboardTaskChip(item) {
 async function onDashboardTaskDone(chip, item) {
   if (chip.classList.contains('task-chip--busy')) return;
   chip.classList.add('task-chip--busy', 'task-chip--done');
+  Confetti.burst();
 
   try {
     if (item.type === 'menage') {
       const updated = { ...item.task, ...TaskReset.markDoneFields() };
       await SheetsAPI.updateRow(CONFIG.SHEETS.MENAGE_TACHES, item.task._rowIndex, updated);
-      const freq = (item.task['Fréquence'] || '').trim().toLowerCase();
-      if (freq === 'quotidien') Confetti.burst();
     } else {
       await ChatTab.markMedicamentDone(item.task);
     }

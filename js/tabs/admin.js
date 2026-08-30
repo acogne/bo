@@ -111,6 +111,7 @@
   async function onCheck(chip, task, container) {
     if (chip.classList.contains('task-chip--busy')) return;
     chip.classList.add('task-chip--busy', 'task-chip--done');
+    Confetti.burst();
 
     try {
       const recurrence = (task['Récurrence'] || '').trim();

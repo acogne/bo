@@ -88,6 +88,7 @@ const ChatTab = (() => {
   async function onGiveMedicament(chip, med, container) {
     if (chip.classList.contains('task-chip--busy')) return;
     chip.classList.add('task-chip--busy', 'task-chip--done');
+    Confetti.burst();
 
     try {
       await markMedicamentDone(med);
@@ -243,6 +244,7 @@ const ChatTab = (() => {
   async function onCheckEvenement(chip, ev, container) {
     if (chip.classList.contains('task-chip--busy')) return;
     chip.classList.add('task-chip--busy', 'task-chip--done');
+    Confetti.burst();
 
     try {
       await SheetsAPI.updateRow(SHEET_EVENEMENTS, ev._rowIndex, { ...ev, 'Statut': 'Fait' });

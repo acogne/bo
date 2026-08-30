@@ -125,6 +125,7 @@
   async function onSettle(chip, entry, listEl) {
     if (chip.classList.contains('task-chip--busy')) return;
     chip.classList.add('task-chip--busy', 'task-chip--done');
+    Confetti.burst();
 
     try {
       await SheetsAPI.updateRow(SHEET, entry._rowIndex, { ...entry, 'Remboursement_dû': '0' });

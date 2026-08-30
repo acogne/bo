@@ -110,6 +110,7 @@ const VehiculeTab = (() => {
   async function onCheck(chip, reminder, listEl) {
     if (chip.classList.contains('task-chip--busy')) return;
     chip.classList.add('task-chip--busy', 'task-chip--done');
+    Confetti.burst();
 
     try {
       await markDone(reminder);

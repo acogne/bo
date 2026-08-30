@@ -92,6 +92,7 @@
   async function onRestock(chip, article, container) {
     if (chip.classList.contains('task-chip--busy')) return;
     chip.classList.add('task-chip--busy', 'task-chip--done');
+    Confetti.burst();
 
     try {
       await SheetsAPI.updateRow(SHEET, article._rowIndex, { ...article, 'Statut': 'OK', 'Dernière_maj': DateUtils.toISODate() });

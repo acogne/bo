@@ -127,6 +127,7 @@
   async function onCheckTask(chip, task) {
     if (chip.classList.contains('task-chip--busy')) return;
     chip.classList.add('task-chip--busy', 'task-chip--done');
+    Confetti.burst();
 
     const freq = (task['Fréquence'] || '').trim().toLowerCase();
     const updated = { ...task, ...TaskReset.markDoneFields() };
@@ -145,7 +146,6 @@
         setTimeout(() => chip.classList.remove('task-chip--done'), 700);
       } else {
         // Quotidien/Hebdo : disparaît de la liste jusqu'au prochain reset.
-        if (freq === 'quotidien') Confetti.burst();
         setTimeout(() => {
           chip.classList.add('task-chip--exit');
           setTimeout(() => {

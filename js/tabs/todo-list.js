@@ -83,6 +83,7 @@ const TodoListTab = (() => {
     async function onCheck(chip, task) {
       if (chip.classList.contains('task-chip--busy')) return;
       chip.classList.add('task-chip--busy', 'task-chip--done');
+      Confetti.burst();
 
       const updated = { ...task, Statut: 'Fait' };
 
