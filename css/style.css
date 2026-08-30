@@ -1,6 +1,7 @@
-/* Variables globales — mode clair uniquement en V1, mais structuré pour un
-   futur dark mode (il suffira de redéfinir ces variables dans un bloc
-   [data-theme="dark"] ou @media (prefers-color-scheme: dark)). */
+/* Variables globales. Thème clair par défaut ; le mode nuit redéfinit les
+   mêmes variables soit via la préférence système (prefers-color-scheme),
+   soit via [data-theme="dark"] posé par ThemeManager (js/theme.js) quand
+   l'utilisateur bascule manuellement — ce dernier a toujours le dernier mot. */
 :root {
   --bg: #f7f3ed;
   --card-bg: #fffdfa;
@@ -11,7 +12,8 @@
 
   /* Couleurs d'accent par domaine — utilisées en liseré/icône, jamais en fond
      plein — légèrement désaturées (mélange ~20% vers un gris chaud) pour
-     rester cohérentes avec le fond beige/crème. */
+     rester cohérentes avec le fond beige/crème. Inchangées en mode nuit :
+     elles restent lisibles sur fond sombre chaud. */
   --accent-menage: #4c83dd;
   --accent-courses: #38b863;
   --accent-enfant: #e4772a;
@@ -21,8 +23,30 @@
   --accent-budget: #be891b;
   --accent-admin: #dc514e;
 
+  --input-border: #e5ded3;
+
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
   --safe-area-top: env(safe-area-inset-top, 0px);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #221e1a;
+    --card-bg: #2d2822;
+    --text: #f2ece3;
+    --text-muted: #b0a493;
+    --shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+    --input-border: #453e35;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #221e1a;
+  --card-bg: #2d2822;
+  --text: #f2ece3;
+  --text-muted: #b0a493;
+  --shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+  --input-border: #453e35;
 }
 
 * {
@@ -371,7 +395,7 @@ body {
 
 .quick-add-form input,
 .quick-add-form select {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--input-border);
   border-radius: 10px;
   padding: 10px 12px;
   font-family: inherit;

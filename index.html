@@ -4,11 +4,24 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Dashboard Foyer</title>
-  <meta name="theme-color" content="#3b82f6" />
+  <meta name="theme-color" content="#f7f3ed" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#221e1a" media="(prefers-color-scheme: dark)" />
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" type="image/png" href="icons/icon-192.png" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
   <link rel="stylesheet" href="css/style.css" />
+  <script>
+    // Applique le thème sauvegardé avant le premier rendu, pour éviter un
+    // flash de thème clair si l'utilisateur a choisi le mode nuit.
+    (function () {
+      try {
+        var saved = localStorage.getItem('dashboard-foyer-theme');
+        if (saved === 'dark' || saved === 'light') {
+          document.documentElement.setAttribute('data-theme', saved);
+        }
+      } catch (e) {}
+    })();
+  </script>
 </head>
 <body>
 
@@ -25,6 +38,7 @@
       <button id="menu-btn" class="icon-btn" aria-label="Ouvrir le menu">☰</button>
       <span class="topbar-title">Dashboard Foyer</span>
       <button id="refresh-btn" class="icon-btn" aria-label="Rafraîchir">⟳</button>
+      <button id="theme-toggle-btn" class="icon-btn" aria-label="Changer de thème">🌙</button>
     </header>
 
     <main id="app-content"></main>
@@ -76,6 +90,7 @@
   <script src="js/date-utils.js"></script>
   <script src="js/task-reset.js"></script>
   <script src="js/confetti.js"></script>
+  <script src="js/theme.js"></script>
   <script src="js/tab-registry.js"></script>
   <script src="js/tabs/menage.js"></script>
   <script src="js/tabs/courses.js"></script>

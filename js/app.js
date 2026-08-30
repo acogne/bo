@@ -8,6 +8,9 @@ const ROUTES = {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+  ThemeManager.init();
+  updateThemeToggleIcon();
+
   Auth.init();
   Auth.onAuthChange(renderAuthState);
   renderAuthState(Auth.getUser());
@@ -16,6 +19,10 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('logout-btn').addEventListener('click', () => Auth.logout());
 
   document.getElementById('refresh-btn').addEventListener('click', onRefreshClick);
+  document.getElementById('theme-toggle-btn').addEventListener('click', () => {
+    ThemeManager.toggle();
+    updateThemeToggleIcon();
+  });
 
   document.getElementById('menu-btn').addEventListener('click', openMenu);
   document.getElementById('menu-close-btn').addEventListener('click', closeMenu);
@@ -50,6 +57,13 @@ function openMenu() {
 
 function closeMenu() {
   document.getElementById('menu-overlay').hidden = true;
+}
+
+function updateThemeToggleIcon() {
+  const btn = document.getElementById('theme-toggle-btn');
+  const isDark = ThemeManager.current() === 'dark';
+  btn.textContent = isDark ? '☀️' : '🌙';
+  btn.setAttribute('aria-label', isDark ? 'Passer en mode clair' : 'Passer en mode nuit');
 }
 
 function onRefreshClick() {
