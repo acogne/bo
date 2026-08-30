@@ -43,7 +43,7 @@
         info.textContent = 'Aucune rotation définie pour cette semaine.';
         return;
       }
-      info.innerHTML = `Cette semaine : <strong>${escapeHtml(row['Ménage'] || '?')}</strong> fait le ménage · <strong>${escapeHtml(row['Courses'] || '?')}</strong> fait les courses`;
+      info.innerHTML = `Cette semaine : <strong>${escapeHtml(row['Ménage_assigné_à'] || '?')}</strong> fait le ménage · <strong>${escapeHtml(row['Courses_assigné_à'] || '?')}</strong> fait les courses`;
     } catch (err) {
       console.error(err);
       info.textContent = 'Impossible de charger la rotation.';

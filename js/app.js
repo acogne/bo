@@ -123,7 +123,7 @@ async function renderDashboardWeekInfo() {
       el.textContent = 'Aucune rotation définie pour cette semaine.';
       return;
     }
-    el.innerHTML = `Ménage : <strong>${row['Ménage'] || '?'}</strong> · Courses : <strong>${row['Courses'] || '?'}</strong>`;
+    el.innerHTML = `Ménage : <strong>${row['Ménage_assigné_à'] || '?'}</strong> · Courses : <strong>${row['Courses_assigné_à'] || '?'}</strong>`;
   } catch (err) {
     console.error(err);
     el.textContent = 'Impossible de charger la rotation.';
