@@ -189,20 +189,67 @@ async function renderDashboardTodayTasks() {
       return (freq === 'quotidien' || freq === 'hebdo') && TaskReset.isVisible(t, now);
     });
 
-    const labels = [
-      ...todayTasks.map((t) => t['Nom'] || ''),
-      ...dueMedicaments.map((m) => ChatTab.formatMedicamentLabel(m))
+    const items = [
+      ...todayTasks.map((t) => ({ type: 'menage', task: t, label: t['Nom'] || '' })),
+      ...dueMedicaments.map((m) => ({ type: 'medicament', task: m, label: ChatTab.formatMedicamentLabel(m) }))
     ];
 
-    if (labels.length === 0) {
+    if (items.length === 0) {
       el.innerHTML = '<p class="text-muted">Rien à faire aujourd\'hui 🎉</p>';
       return;
     }
 
-    el.innerHTML = `<ul class="dash-task-list">${labels.map((label) => `<li>${escapeHtml(label)}</li>`).join('')}</ul>`;
+    el.innerHTML = '';
+    const chipsWrap = document.createElement('div');
+    chipsWrap.className = 'task-chips';
+    items.forEach((item) => chipsWrap.appendChild(renderDashboardTaskChip(item)));
+    el.appendChild(chipsWrap);
   } catch (err) {
     console.error(err);
     el.innerHTML = '<p class="text-muted">Impossible de charger les tâches.</p>';
+  }
+}
+
+function renderDashboardTaskChip(item) {
+  const chip = document.createElement('button');
+  chip.type = 'button';
+  chip.className = `task-chip accent-${item.type === 'medicament' ? 'chat' : 'menage'}`;
+  chip.innerHTML = `
+    <span class="task-chip-check" aria-hidden="true"></span>
+    <span class="task-chip-body">
+      <span class="task-chip-name">${escapeHtml(item.label)}</span>
+    </span>
+  `;
+  chip.addEventListener('click', () => onDashboardTaskDone(chip, item));
+  return chip;
+}
+
+async function onDashboardTaskDone(chip, item) {
+  if (chip.classList.contains('task-chip--busy')) return;
+  chip.classList.add('task-chip--busy', 'task-chip--done');
+
+  try {
+    if (item.type === 'menage') {
+      const updated = { ...item.task, ...TaskReset.markDoneFields() };
+      await SheetsAPI.updateRow(CONFIG.SHEETS.MENAGE_TACHES, item.task._rowIndex, updated);
+    } else {
+      await ChatTab.markMedicamentDone(item.task);
+    }
+
+    setTimeout(() => {
+      chip.classList.add('task-chip--exit');
+      setTimeout(() => {
+        const wrap = chip.closest('.task-chips');
+        chip.remove();
+        if (wrap && wrap.querySelectorAll('.task-chip').length === 0) {
+          wrap.parentElement.innerHTML = '<p class="text-muted">Rien à faire aujourd\'hui 🎉</p>';
+        }
+      }, 300);
+    }, 500);
+  } catch (err) {
+    console.error(err);
+    chip.classList.remove('task-chip--busy', 'task-chip--done');
+    alert("Impossible d'enregistrer cette tâche, réessaie.");
   }
 }
 

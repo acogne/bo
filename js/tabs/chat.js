@@ -405,5 +405,5 @@ const ChatTab = (() => {
 
   TabRegistry.register('chat', { title: 'Chat', accent: 'chat', render });
 
-  return { getDueMedicaments, formatMedicamentLabel };
+  return { getDueMedicaments, formatMedicamentLabel, markMedicamentDone };
 })();
