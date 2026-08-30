@@ -79,11 +79,11 @@ const CompteursTab = (() => {
   function renderChip(type, listEl, onEmpty) {
     const chip = document.createElement('button');
     chip.type = 'button';
-    chip.className = 'task-chip';
+    chip.className = 'task-chip accent-compteurs';
     chip.innerHTML = `
       <span class="task-chip-check" aria-hidden="true"></span>
       <span class="task-chip-body">
-        <span class="task-chip-name">Relever le compteur ${escapeHtml(type)}</span>
+        <span class="task-chip-name"><span class="task-chip-icon">${Icons.svg('compteurs')}</span>Relever le compteur ${escapeHtml(type)}</span>
         <span class="task-chip-meta">À faire ce mois-ci</span>
       </span>
     `;
@@ -189,7 +189,7 @@ const CompteursTab = (() => {
 
   async function render(container) {
     container.innerHTML = `
-      <section class="tab-header">
+      <section class="tab-header accent-compteurs">
         <h2>Compteurs</h2>
         <p class="week-info">Relevé eau/électricité attendu chaque mois à partir du 27.</p>
       </section>

@@ -71,7 +71,7 @@ const TodoListTab = (() => {
       chip.innerHTML = `
         <span class="task-chip-check" aria-hidden="true"></span>
         <span class="task-chip-body">
-          <span class="task-chip-name">${escapeHtml(task['Description'] || '')}</span>
+          <span class="task-chip-name"><span class="task-chip-icon">${Icons.svg(accent)}</span>${escapeHtml(task['Description'] || '')}</span>
           <span class="task-chip-meta">${escapeHtml(metaParts.join(' · '))}</span>
         </span>
       `;

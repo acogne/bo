@@ -77,7 +77,7 @@ const ChatTab = (() => {
     chip.innerHTML = `
       <span class="task-chip-check" aria-hidden="true"></span>
       <span class="task-chip-body">
-        <span class="task-chip-name">${escapeHtml([med['Nom_médicament'], med['Fréquence']].filter(Boolean).join(' — '))}</span>
+        <span class="task-chip-name"><span class="task-chip-icon">${Icons.svg('chat')}</span>${escapeHtml([med['Nom_médicament'], med['Fréquence']].filter(Boolean).join(' — '))}</span>
         <span class="task-chip-meta">À donner aujourd'hui</span>
       </span>
     `;
@@ -223,16 +223,24 @@ const ChatTab = (() => {
   function renderEvenementChip(ev, container) {
     const chip = document.createElement('button');
     chip.type = 'button';
-    chip.className = 'task-chip accent-chat';
+    chip.className = 'task-chip task-chip--event accent-chat';
     chip.dataset.rowIndex = ev._rowIndex;
 
-    const metaParts = [formatDate(ev['Date'])];
+    const metaParts = [];
     if (ev['Type']) metaParts.push(ev['Type']);
 
+    const d = DateUtils.parseDate(ev['Date']);
+    const dayAbbrev = d ? d.toLocaleDateString('fr-FR', { weekday: 'short' }).replace('.', '') : '?';
+    const dayNum = d ? d.getDate() : '?';
+
     chip.innerHTML = `
+      <span class="task-chip-badge" aria-hidden="true">
+        <span class="task-chip-badge-day">${escapeHtml(dayAbbrev)}</span>
+        <span class="task-chip-badge-num">${escapeHtml(String(dayNum))}</span>
+      </span>
       <span class="task-chip-check" aria-hidden="true"></span>
       <span class="task-chip-body">
-        <span class="task-chip-name">${escapeHtml(ev['Description'] || '')}</span>
+        <span class="task-chip-name"><span class="task-chip-icon">${Icons.svg('chat')}</span>${escapeHtml(ev['Description'] || '')}</span>
         <span class="task-chip-meta">${escapeHtml(metaParts.join(' · '))}</span>
       </span>
     `;

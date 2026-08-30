@@ -3,17 +3,17 @@
    soit via [data-theme="dark"] posé par ThemeManager (js/theme.js) quand
    l'utilisateur bascule manuellement — ce dernier a toujours le dernier mot. */
 :root {
-  --bg: #f7f3ed;
+  --bg: #ede4d6;
   --card-bg: #fffdfa;
   --text: #3a322c;
   --text-muted: #8a8074;
   --border-radius: 22px;
-  --shadow: 0 2px 12px rgba(58, 50, 44, 0.08);
+  --shadow: 0 4px 16px rgba(58, 50, 44, 0.14);
 
-  /* Couleurs d'accent par domaine — utilisées en liseré/icône, jamais en fond
-     plein — légèrement désaturées (mélange ~20% vers un gris chaud) pour
-     rester cohérentes avec le fond beige/crème. Inchangées en mode nuit :
-     elles restent lisibles sur fond sombre chaud. */
+  /* Couleurs d'accent par domaine — utilisées en liseré/icône/coche, jamais
+     en fond plein — légèrement désaturées (mélange ~20% vers un gris chaud)
+     pour rester cohérentes avec le fond beige/crème. Inchangées en mode
+     nuit : elles restent lisibles sur fond sombre chaud. */
   --accent-menage: #4c83dd;
   --accent-courses: #38b863;
   --accent-enfant: #e4772a;
@@ -22,6 +22,9 @@
   --accent-bricolage: #7d756e;
   --accent-budget: #be891b;
   --accent-admin: #dc514e;
+  --accent-compteurs: #238fa6;
+  --accent-vehicule: #6d7787;
+  --accent-stock: #b84f22;
 
   --input-border: #e5ded3;
 
@@ -31,21 +34,21 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #221e1a;
-    --card-bg: #2d2822;
+    --bg: #19140f;
+    --card-bg: #2f2921;
     --text: #f2ece3;
     --text-muted: #b0a493;
-    --shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+    --shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
     --input-border: #453e35;
   }
 }
 
 :root[data-theme="dark"] {
-  --bg: #221e1a;
-  --card-bg: #2d2822;
+  --bg: #19140f;
+  --card-bg: #2f2921;
   --text: #f2ece3;
   --text-muted: #b0a493;
-  --shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+  --shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
   --input-border: #453e35;
 }
 
@@ -205,7 +208,9 @@ body {
 }
 
 .menu-link {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   padding: 12px 14px;
   border-radius: 12px;
   background: var(--card-bg);
@@ -216,16 +221,32 @@ body {
   margin-bottom: 4px;
 }
 
-/* ---------- Cartes de domaine (liseré d'accent, jamais fond plein) ---------- */
+.menu-icon {
+  display: inline-flex;
+  color: var(--chip-accent, var(--text-muted));
+  flex-shrink: 0;
+}
 
-.accent-menage { border-left-color: var(--accent-menage); }
-.accent-courses { border-left-color: var(--accent-courses); }
-.accent-enfant { border-left-color: var(--accent-enfant); }
-.accent-chat { border-left-color: var(--accent-chat); }
-.accent-jardin { border-left-color: var(--accent-jardin); }
-.accent-bricolage { border-left-color: var(--accent-bricolage); }
-.accent-budget { border-left-color: var(--accent-budget); }
-.accent-admin { border-left-color: var(--accent-admin); }
+.menu-icon svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+/* ---------- Cartes de domaine (liseré d'accent, jamais fond plein) ---------- */
+/* --chip-accent est réutilisée par la coche des chips et l'icône du menu. */
+
+.accent-menage { border-left-color: var(--accent-menage); --chip-accent: var(--accent-menage); }
+.accent-courses { border-left-color: var(--accent-courses); --chip-accent: var(--accent-courses); }
+.accent-enfant { border-left-color: var(--accent-enfant); --chip-accent: var(--accent-enfant); }
+.accent-chat { border-left-color: var(--accent-chat); --chip-accent: var(--accent-chat); }
+.accent-jardin { border-left-color: var(--accent-jardin); --chip-accent: var(--accent-jardin); }
+.accent-bricolage { border-left-color: var(--accent-bricolage); --chip-accent: var(--accent-bricolage); }
+.accent-budget { border-left-color: var(--accent-budget); --chip-accent: var(--accent-budget); }
+.accent-admin { border-left-color: var(--accent-admin); --chip-accent: var(--accent-admin); }
+.accent-compteurs { border-left-color: var(--accent-compteurs); --chip-accent: var(--accent-compteurs); }
+.accent-vehicule { border-left-color: var(--accent-vehicule); --chip-accent: var(--accent-vehicule); }
+.accent-stock { border-left-color: var(--accent-stock); --chip-accent: var(--accent-stock); }
 
 .tab-header {
   background: var(--card-bg);
@@ -252,12 +273,6 @@ body {
 .dash-card h3 {
   margin: 0 0 8px;
   font-size: 15px;
-}
-
-.dash-task-list {
-  margin: 0;
-  padding-left: 18px;
-  font-size: 14px;
 }
 
 /* ---------- Groupes de tâches + chips ---------- */
@@ -315,8 +330,23 @@ body {
 }
 
 .task-chip-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 15px;
   font-weight: 800;
+}
+
+.task-chip-icon {
+  display: inline-flex;
+  color: var(--chip-accent, var(--text-muted));
+  flex-shrink: 0;
+}
+
+.task-chip-icon svg {
+  width: 16px;
+  height: 16px;
+  display: block;
 }
 
 .task-chip-meta {
@@ -325,10 +355,10 @@ body {
   font-weight: 500;
 }
 
-/* Confirmation brève : la coche se remplit et devient verte */
+/* Confirmation brève : la coche se remplit avec la couleur d'accent du domaine */
 .task-chip--done .task-chip-check {
-  border-color: #22c55e;
-  background: #22c55e;
+  border-color: var(--chip-accent, #22c55e);
+  background: var(--chip-accent, #22c55e);
 }
 
 .task-chip--done .task-chip-check::after {
@@ -347,6 +377,99 @@ body {
 .task-chip--exit {
   opacity: 0;
   transform: scale(0.92);
+}
+
+/* Badge date (jour + numéro) — distingue les chips liées à un événement
+   d'agenda (ex. Chat_Evenements) des chips de tâche générique. */
+.task-chip-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--chip-accent, var(--text-muted));
+  flex-shrink: 0;
+}
+
+.task-chip-badge-day {
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+}
+
+.task-chip-badge-num {
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+/* ---------- Lignes d'événements d'agenda en lecture seule (ex. "Cette
+   semaine" sur la home) — même badge que .task-chip-badge, mais non
+   cliquables et sans coche : distinctes des chips de tâche à cocher. */
+.event-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.event-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.event-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--card-bg);
+  box-shadow: var(--shadow);
+  color: var(--accent-menage);
+  flex-shrink: 0;
+}
+
+.event-badge-day {
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+}
+
+.event-badge-num {
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.event-row-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.event-row-title {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.event-row-time {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
 }
 
 /* ---------- Cotillons (tâche Quotidien cochée) ---------- */

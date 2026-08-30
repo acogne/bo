@@ -95,11 +95,11 @@ const VehiculeTab = (() => {
   function renderChip(reminder, listEl) {
     const chip = document.createElement('button');
     chip.type = 'button';
-    chip.className = 'task-chip';
+    chip.className = 'task-chip accent-vehicule';
     chip.innerHTML = `
       <span class="task-chip-check" aria-hidden="true"></span>
       <span class="task-chip-body">
-        <span class="task-chip-name">${escapeHtml(reminder.type)}</span>
+        <span class="task-chip-name"><span class="task-chip-icon">${Icons.svg('vehicule')}</span>${escapeHtml(reminder.type)}</span>
         <span class="task-chip-meta">Rappel saisonnier</span>
       </span>
     `;
@@ -214,7 +214,7 @@ const VehiculeTab = (() => {
 
   async function render(container) {
     container.innerHTML = `
-      <section class="tab-header">
+      <section class="tab-header accent-vehicule">
         <h2>Véhicule</h2>
         <p class="week-info">Pneus été rappelés au printemps (~20 mars), pneus hiver à l'automne (~22 septembre).</p>
       </section>

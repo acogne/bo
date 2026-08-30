@@ -30,6 +30,8 @@ document.addEventListener('DOMContentLoaded', () => {
     link.addEventListener('click', closeMenu);
   });
 
+  injectMenuIcons();
+
   window.addEventListener('hashchange', renderRoute);
 
   registerServiceWorker();
@@ -49,6 +51,16 @@ function renderAuthState(user) {
     loginView.hidden = false;
     appView.hidden = true;
   }
+}
+
+function injectMenuIcons() {
+  document.querySelectorAll('#menu-overlay a.menu-link[href^="#/"]').forEach((link) => {
+    const route = link.getAttribute('href').replace(/^#\//, '');
+    const iconKey = route === 'dashboard' ? 'accueil' : route;
+    const svg = Icons.svg(iconKey);
+    if (!svg) return;
+    link.innerHTML = `<span class="menu-icon">${svg}</span><span>${link.textContent}</span>`;
+  });
 }
 
 function openMenu() {
@@ -160,13 +172,15 @@ function parseCalendarDate(start) {
   return new Date(y, m - 1, d);
 }
 
-function formatEventLabel(event) {
+function formatEventParts(event) {
   const start = event.start || {};
   const date = parseCalendarDate(start);
-  const dayLabel = date.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
-  if (!start.dateTime) return dayLabel;
-  const timeLabel = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-  return `${dayLabel} · ${timeLabel}`;
+  const dayAbbrev = date.toLocaleDateString('fr-FR', { weekday: 'short' }).replace('.', '');
+  const dayNum = date.getDate();
+  const timeLabel = start.dateTime
+    ? date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+    : 'Toute la journée';
+  return { dayAbbrev, dayNum, timeLabel };
 }
 
 async function renderDashboardWeekEvents() {
@@ -179,11 +193,24 @@ async function renderDashboardWeekEvents() {
       return;
     }
 
-    el.innerHTML = `<ul class="dash-task-list">${events.map((ev) => {
-      const label = formatEventLabel(ev);
-      const summary = ev.summary || '(Sans titre)';
-      return `<li><strong>${escapeHtml(label)}</strong> — ${escapeHtml(summary)}</li>`;
-    }).join('')}</ul>`;
+    el.innerHTML = '<div class="event-rows"></div>';
+    const wrap = el.querySelector('.event-rows');
+    events.forEach((ev) => {
+      const { dayAbbrev, dayNum, timeLabel } = formatEventParts(ev);
+      const row = document.createElement('div');
+      row.className = 'event-row';
+      row.innerHTML = `
+        <span class="event-badge">
+          <span class="event-badge-day">${escapeHtml(dayAbbrev)}</span>
+          <span class="event-badge-num">${dayNum}</span>
+        </span>
+        <span class="event-row-body">
+          <span class="event-row-title">${escapeHtml(ev.summary || '(Sans titre)')}</span>
+          <span class="event-row-time">${escapeHtml(timeLabel)}</span>
+        </span>
+      `;
+      wrap.appendChild(row);
+    });
   } catch (err) {
     console.error(err);
     el.innerHTML = '<p class="text-muted">Impossible de charger les événements de l\'agenda.</p>';
@@ -225,13 +252,14 @@ async function renderDashboardTodayTasks() {
 }
 
 function renderDashboardTaskChip(item) {
+  const domain = item.type === 'medicament' ? 'chat' : 'menage';
   const chip = document.createElement('button');
   chip.type = 'button';
-  chip.className = `task-chip accent-${item.type === 'medicament' ? 'chat' : 'menage'}`;
+  chip.className = `task-chip accent-${domain}`;
   chip.innerHTML = `
     <span class="task-chip-check" aria-hidden="true"></span>
     <span class="task-chip-body">
-      <span class="task-chip-name">${escapeHtml(item.label)}</span>
+      <span class="task-chip-name"><span class="task-chip-icon">${Icons.svg(domain)}</span>${escapeHtml(item.label)}</span>
     </span>
   `;
   chip.addEventListener('click', () => onDashboardTaskDone(chip, item));
