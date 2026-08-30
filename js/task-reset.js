@@ -12,15 +12,15 @@
 
 const TaskReset = (() => {
   function isVisible(task, now = new Date()) {
-    const freq = (task['Fréquence'] || '').trim();
+    const freq = (task['Fréquence'] || '').trim().toLowerCase();
     const last = DateUtils.parseDate(task['Dernière_fois']);
 
     if (!last) return true; // jamais faite -> toujours visible
 
-    if (freq === 'Quotidien') {
+    if (freq === 'quotidien') {
       return !DateUtils.isSameDay(last, now);
     }
-    if (freq === 'Hebdo') {
+    if (freq === 'hebdo') {
       return DateUtils.startOfWeekMonday(last).getTime() !== DateUtils.startOfWeekMonday(now).getTime();
     }
     // Occasionnel (et toute fréquence inconnue) : jamais masquée automatiquement.

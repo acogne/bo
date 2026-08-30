@@ -17,11 +17,10 @@
       </section>
       <form id="menage-add-form" class="quick-add-form">
         <input type="text" id="menage-add-nom" placeholder="Nouvelle tâche" required />
-        <input type="text" id="menage-add-categorie" placeholder="Catégorie (ex. Cuisine)" />
         <select id="menage-add-frequence">
-          <option value="Quotidien">Quotidien</option>
-          <option value="Hebdo">Hebdo</option>
-          <option value="Occasionnel">Occasionnel</option>
+          <option value="quotidien">Quotidien</option>
+          <option value="hebdo">Hebdo</option>
+          <option value="occasionnel">Occasionnel</option>
         </select>
         <input type="text" id="menage-add-assigne" placeholder="Assigné à (optionnel)" />
         <button type="submit" class="btn">Ajouter</button>
@@ -63,18 +62,28 @@
         return;
       }
 
-      const byCategorie = new Map();
+      const FREQUENCE_LABELS = { quotidien: 'Quotidien', hebdo: 'Hebdo', occasionnel: 'Occasionnel' };
+      const FREQUENCE_ORDER = ['quotidien', 'hebdo', 'occasionnel'];
+
+      const byFrequence = new Map();
       visibleTasks.forEach((t) => {
-        const cat = t['Catégorie'] || 'Autre';
-        if (!byCategorie.has(cat)) byCategorie.set(cat, []);
-        byCategorie.get(cat).push(t);
+        const raw = (t['Fréquence'] || '').trim();
+        const key = raw.toLowerCase() || 'autre';
+        if (!byFrequence.has(key)) byFrequence.set(key, { label: FREQUENCE_LABELS[key] || raw || 'Autre', tasks: [] });
+        byFrequence.get(key).tasks.push(t);
       });
 
+      const orderedKeys = [
+        ...FREQUENCE_ORDER.filter((k) => byFrequence.has(k)),
+        ...[...byFrequence.keys()].filter((k) => !FREQUENCE_ORDER.includes(k))
+      ];
+
       listEl.innerHTML = '';
-      byCategorie.forEach((tasks, categorie) => {
+      orderedKeys.forEach((key) => {
+        const { label, tasks } = byFrequence.get(key);
         const group = document.createElement('div');
         group.className = 'task-group';
-        group.innerHTML = `<h3 class="task-group-title">${escapeHtml(categorie)}</h3>`;
+        group.innerHTML = `<h3 class="task-group-title">${escapeHtml(label)}</h3>`;
 
         const chipsWrap = document.createElement('div');
         chipsWrap.className = 'task-chips';
@@ -96,10 +105,10 @@
     chip.className = 'task-chip accent-menage';
     chip.dataset.rowIndex = task._rowIndex;
 
-    const freq = task['Fréquence'] || '';
-    const metaParts = [freq];
-    if (freq === 'Occasionnel') {
-      metaParts[0] = TaskReset.ancienneteLabel(task);
+    const freq = (task['Fréquence'] || '').trim().toLowerCase();
+    const metaParts = [];
+    if (freq === 'occasionnel') {
+      metaParts.push(TaskReset.ancienneteLabel(task));
     }
     if (task['Assigné_à']) metaParts.push(task['Assigné_à']);
 
@@ -119,13 +128,13 @@
     if (chip.classList.contains('task-chip--busy')) return;
     chip.classList.add('task-chip--busy', 'task-chip--done');
 
-    const freq = (task['Fréquence'] || '').trim();
+    const freq = (task['Fréquence'] || '').trim().toLowerCase();
     const updated = { ...task, ...TaskReset.markDoneFields() };
 
     try {
       await SheetsAPI.updateRow(SHEET, task._rowIndex, updated);
 
-      if (freq === 'Occasionnel') {
+      if (freq === 'occasionnel') {
         // Reste dans la liste : on rafraîchit juste le libellé d'ancienneté.
         Object.assign(task, updated);
         const meta = chip.querySelector('.task-chip-meta');
@@ -157,7 +166,6 @@
   async function onAddTask(e, container) {
     e.preventDefault();
     const nomInput = container.querySelector('#menage-add-nom');
-    const categorieInput = container.querySelector('#menage-add-categorie');
     const frequenceSelect = container.querySelector('#menage-add-frequence');
     const assigneInput = container.querySelector('#menage-add-assigne');
 
@@ -177,7 +185,6 @@
       await SheetsAPI.appendRow(SHEET, {
         'ID': maxId + 1,
         'Nom': nom,
-        'Catégorie': categorieInput.value.trim(),
         'Fréquence': frequenceSelect.value,
         'Dernière_fois': '',
         'Assigné_à': assigneInput.value.trim(),
@@ -185,9 +192,8 @@
       });
 
       nomInput.value = '';
-      categorieInput.value = '';
       assigneInput.value = '';
-      frequenceSelect.value = 'Quotidien';
+      frequenceSelect.value = 'quotidien';
 
       await renderTaskList(container);
     } catch (err) {

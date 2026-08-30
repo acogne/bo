@@ -137,8 +137,8 @@ async function renderDashboardTodayTasks() {
       ChatTab.getDueMedicaments(now)
     ]);
     const todayTasks = menageRes.rows.filter((t) => {
-      const freq = (t['Fréquence'] || '').trim();
-      return (freq === 'Quotidien' || freq === 'Hebdo') && TaskReset.isVisible(t, now);
+      const freq = (t['Fréquence'] || '').trim().toLowerCase();
+      return (freq === 'quotidien' || freq === 'hebdo') && TaskReset.isVisible(t, now);
     });
 
     const labels = [
