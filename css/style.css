@@ -1,3 +1,33 @@
+/* MADE Tommy Soft — licence Personal Use (voir font/License READ ME
+   FIRST.txt) achetée par l'utilisateur pour cet usage. Seules les 3 graisses
+   réellement utilisées dans cette feuille (500/600/800) sont chargées ; 600
+   n'a pas de fichier dédié, le navigateur retombe automatiquement sur le
+   Bold 700 déclaré ci-dessous (règle de matching CSS standard : au-dessus
+   de 400, il cherche d'abord une graisse plus lourde disponible). */
+@font-face {
+  font-family: 'MADE Tommy Soft';
+  src: url('../font/MADE Tommy Soft Medium PERSONAL USE.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'MADE Tommy Soft';
+  src: url('../font/MADE Tommy Soft Bold PERSONAL USE.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'MADE Tommy Soft';
+  src: url('../font/MADE Tommy Soft ExtraBold PERSONAL USE.otf') format('opentype');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* Variables globales. Thème clair par défaut ; le mode nuit redéfinit les
    mêmes variables soit via la préférence système (prefers-color-scheme),
    soit via [data-theme="dark"] posé par ThemeManager (js/theme.js) quand
