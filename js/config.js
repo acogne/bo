@@ -6,7 +6,7 @@ const CONFIG = {
   SHEET_ID: '1hm7cPjHf8zEgTXO7Byvm1OjRnJDrXjHSm3F_qW6Szac',
 
   // Agenda familial partagé — cible des rappels créés quand "Rappel_agenda" est coché.
-  CALENDAR_ID: '06b07df5965d6c12a1689d4282c393c2753d93e04080cb28095a4a5cea5a0f7@group.calendar.google.com',
+  CALENDAR_ID: '06b07df5965d6c12a1689d4d282c393c2753d93e04080cb28095a4a5cea5a0f7@group.calendar.google.com',
 
   ALLOWED_EMAILS: [
     'arnaudcogne@gmail.com',

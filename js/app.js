@@ -82,6 +82,7 @@ async function renderDashboard(container) {
     <section class="card dash-card">
       <h3>Cette semaine</h3>
       <p id="dash-week-info" class="text-muted">Chargement…</p>
+      <div id="dash-week-events"><p class="text-muted">Chargement des événements…</p></div>
     </section>
     <section class="card dash-card">
       <h3>Tâches du jour</h3>
@@ -105,6 +106,7 @@ async function renderDashboard(container) {
   `;
 
   renderDashboardWeekInfo();
+  renderDashboardWeekEvents();
   renderDashboardTodayTasks();
   renderDashboardCompteurs();
   renderDashboardVehicule();
@@ -125,6 +127,42 @@ async function renderDashboardWeekInfo() {
   } catch (err) {
     console.error(err);
     el.textContent = 'Impossible de charger la rotation.';
+  }
+}
+
+function parseCalendarDate(start) {
+  if (start.dateTime) return new Date(start.dateTime);
+  const [y, m, d] = start.date.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function formatEventLabel(event) {
+  const start = event.start || {};
+  const date = parseCalendarDate(start);
+  const dayLabel = date.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+  if (!start.dateTime) return dayLabel;
+  const timeLabel = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  return `${dayLabel} · ${timeLabel}`;
+}
+
+async function renderDashboardWeekEvents() {
+  const el = document.getElementById('dash-week-events');
+  try {
+    const events = await CalendarAPI.listUpcomingEvents({ days: 7 });
+
+    if (events.length === 0) {
+      el.innerHTML = '<p class="text-muted">Aucun événement dans les 7 prochains jours.</p>';
+      return;
+    }
+
+    el.innerHTML = `<ul class="dash-task-list">${events.map((ev) => {
+      const label = formatEventLabel(ev);
+      const summary = ev.summary || '(Sans titre)';
+      return `<li><strong>${escapeHtml(label)}</strong> — ${escapeHtml(summary)}</li>`;
+    }).join('')}</ul>`;
+  } catch (err) {
+    console.error(err);
+    el.innerHTML = '<p class="text-muted">Impossible de charger les événements de l\'agenda.</p>';
   }
 }
 

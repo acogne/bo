@@ -50,5 +50,28 @@ const CalendarAPI = (() => {
     return res.json();
   }
 
-  return { createEvent };
+  // Événements des `days` prochains jours (défaut 7), triés par heure de début.
+  async function listUpcomingEvents({ days = 7 } = {}) {
+    const calendarId = CONFIG.CALENDAR_ID;
+    const timeMin = new Date();
+    const timeMax = new Date(timeMin.getTime() + days * 24 * 60 * 60 * 1000);
+    const params = new URLSearchParams({
+      timeMin: timeMin.toISOString(),
+      timeMax: timeMax.toISOString(),
+      singleEvents: 'true',
+      orderBy: 'startTime',
+      maxResults: '20'
+    });
+    const url = `${BASE_URL}/${encodeURIComponent(calendarId)}/events?${params.toString()}`;
+
+    const res = await fetch(url, { headers: authHeaders() });
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new Error(`Erreur API Calendar (${res.status}) : ${body}`);
+    }
+    const data = await res.json();
+    return data.items || [];
+  }
+
+  return { createEvent, listUpcomingEvents };
 })();
