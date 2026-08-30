@@ -1,0 +1,414 @@
+/* Variables globales — mode clair uniquement en V1, mais structuré pour un
+   futur dark mode (il suffira de redéfinir ces variables dans un bloc
+   [data-theme="dark"] ou @media (prefers-color-scheme: dark)). */
+:root {
+  --bg: #f2f3f5;
+  --card-bg: #ffffff;
+  --text: #1c1c1e;
+  --text-muted: #6b7280;
+  --border-radius: 16px;
+  --shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+
+  /* Couleurs d'accent par domaine — utilisées en liseré/icône, jamais en fond plein */
+  --accent-menage: #3b82f6;
+  --accent-courses: #22c55e;
+  --accent-enfant: #f97316;
+  --accent-chat: #a855f7;
+  --accent-jardin: #166534;
+  --accent-bricolage: #78716c;
+  --accent-budget: #ca8a04;
+  --accent-admin: #ef4444;
+
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-top: env(safe-area-inset-top, 0px);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Garantit que `hidden` masque toujours l'élément, même quand une règle de la
+   feuille de style lui donne par ailleurs un display: flex/block/grid. */
+[hidden] {
+  display: none !important;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'MADE Tommy Soft', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-weight: 800;
+  padding-bottom: var(--safe-area-bottom);
+}
+
+/* ---------- Écrans génériques ---------- */
+
+.screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+}
+
+.card {
+  background: var(--card-bg);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  padding: 20px;
+  max-width: 360px;
+  width: 100%;
+}
+
+.btn {
+  display: inline-block;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 20px;
+  font-family: inherit;
+  font-weight: 800;
+  font-size: 15px;
+  cursor: pointer;
+  background: var(--accent-menage);
+  color: #fff;
+  margin-top: 16px;
+  text-align: center;
+  text-decoration: none;
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text-muted);
+  text-decoration: underline;
+}
+
+.text-muted {
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* ---------- Barre du haut + contenu ---------- */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: calc(14px + var(--safe-area-top)) 16px 14px;
+  background: var(--card-bg);
+  box-shadow: var(--shadow);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.topbar-title {
+  font-size: 17px;
+}
+
+.icon-btn {
+  border: none;
+  background: transparent;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--text);
+  padding: 4px 8px;
+}
+
+#app-content {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 16px 16px calc(32px + var(--safe-area-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ---------- Menu burger (overlay plein écran) ---------- */
+
+.menu-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  padding: calc(20px + var(--safe-area-top)) 20px calc(20px + var(--safe-area-bottom));
+  overflow-y: auto;
+}
+
+.menu-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.menu-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.menu-group-title {
+  margin: 16px 0 4px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.menu-link {
+  display: block;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--card-bg);
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 800;
+  border-left: 4px solid transparent;
+  margin-bottom: 4px;
+}
+
+/* ---------- Cartes de domaine (liseré d'accent, jamais fond plein) ---------- */
+
+.accent-menage { border-left-color: var(--accent-menage); }
+.accent-courses { border-left-color: var(--accent-courses); }
+.accent-enfant { border-left-color: var(--accent-enfant); }
+.accent-chat { border-left-color: var(--accent-chat); }
+.accent-jardin { border-left-color: var(--accent-jardin); }
+.accent-bricolage { border-left-color: var(--accent-bricolage); }
+.accent-budget { border-left-color: var(--accent-budget); }
+.accent-admin { border-left-color: var(--accent-admin); }
+
+.tab-header {
+  background: var(--card-bg);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  padding: 20px;
+  border-left: 4px solid transparent;
+}
+
+.tab-header h2 {
+  margin: 0 0 4px;
+}
+
+.week-info {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.dash-card {
+  border-left: 4px solid transparent;
+}
+
+.dash-card h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+
+.dash-task-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 14px;
+}
+
+/* ---------- Groupes de tâches + chips ---------- */
+
+.task-group {
+  background: var(--card-bg);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  padding: 16px;
+}
+
+.task-group-title {
+  margin: 0 0 10px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.task-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.task-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border: none;
+  border-left: 4px solid transparent;
+  background: var(--bg);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.task-chip-check {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--text-muted);
+  flex-shrink: 0;
+  position: relative;
+}
+
+.task-chip-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.task-chip-name {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.task-chip-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* Confirmation brève : la coche se remplit et devient verte */
+.task-chip--done .task-chip-check {
+  border-color: #22c55e;
+  background: #22c55e;
+}
+
+.task-chip--done .task-chip-check::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 1px;
+  width: 5px;
+  height: 9px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* Animation de sortie avant disparition de la liste */
+.task-chip--exit {
+  opacity: 0;
+  transform: scale(0.92);
+}
+
+/* ---------- Formulaire d'ajout rapide ---------- */
+
+.quick-add-form {
+  background: var(--card-bg);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.quick-add-form input,
+.quick-add-form select {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.quick-add-form .btn {
+  margin-top: 4px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.checkbox-label input {
+  width: auto;
+}
+
+/* ---------- Listes d'informations non cochables (événements, absences, suivi) ---------- */
+
+.section-title {
+  margin: 0 0 10px;
+  font-size: 15px;
+}
+
+.info-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.info-row {
+  border-left: 4px solid transparent;
+  background: var(--bg);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.info-row-title {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.info-row-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+/* ---------- Planning type (Garde_Hebdo) ---------- */
+
+.schedule-table {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.schedule-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+  padding: 8px 10px;
+  background: var(--bg);
+  border-radius: 10px;
+}
+
+.schedule-day {
+  font-weight: 800;
+}
+
+.schedule-detail {
+  color: var(--text-muted);
+  font-weight: 600;
+  text-align: right;
+}
