@@ -15,6 +15,8 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('login-btn').addEventListener('click', () => Auth.login());
   document.getElementById('logout-btn').addEventListener('click', () => Auth.logout());
 
+  document.getElementById('refresh-btn').addEventListener('click', onRefreshClick);
+
   document.getElementById('menu-btn').addEventListener('click', openMenu);
   document.getElementById('menu-close-btn').addEventListener('click', closeMenu);
   document.querySelectorAll('#menu-overlay a[href^="#/"]').forEach((link) => {
@@ -48,6 +50,14 @@ function openMenu() {
 
 function closeMenu() {
   document.getElementById('menu-overlay').hidden = true;
+}
+
+function onRefreshClick() {
+  const btn = document.getElementById('refresh-btn');
+  btn.classList.remove('icon-btn--spin');
+  void btn.offsetWidth; // relance l'animation même si elle vient de tourner
+  btn.classList.add('icon-btn--spin');
+  renderRoute();
 }
 
 function currentRoute() {
