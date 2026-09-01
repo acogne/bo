@@ -21,8 +21,9 @@ const CONFIG = {
     'https://www.googleapis.com/auth/calendar.events'
   ].join(' '),
 
-  // Noms exacts des onglets du Google Sheet (21 onglets déjà créés et remplis).
+  // Noms exacts des onglets du Google Sheet (22 onglets déjà créés et remplis).
   SHEETS: {
+    CITATIONS: 'Citations',
     MENAGE_TACHES: 'Ménage_Taches',
     MENAGE_ROTATION: 'Ménage_Rotation',
     COURSES: 'Courses',

@@ -143,6 +143,7 @@ function renderRoute() {
 
 async function renderDashboard(container) {
   container.innerHTML = `
+    <p id="dash-quote" class="dash-quote" hidden></p>
     <section class="card dash-card">
       <h3>Cette semaine</h3>
       <p id="dash-week-info" class="text-muted">Chargement…</p>
@@ -176,11 +177,35 @@ async function renderDashboard(container) {
 
   initDashAddEventForm();
 
+  renderDashboardQuote();
   renderDashboardWeekInfo();
   renderDashboardWeekEvents();
   renderDashboardTodayTasks();
   renderDashboardCompteurs();
   renderDashboardVehicule();
+}
+
+// Citation du jour : sélection déterministe sur le jour de l'année (et non
+// aléatoire) pour que les deux téléphones du foyer affichent la même
+// citation sans synchronisation entre eux, stable jusqu'à minuit.
+async function renderDashboardQuote() {
+  const el = document.getElementById('dash-quote');
+  try {
+    const { rows } = await SheetsAPI.getRows(CONFIG.SHEETS.CITATIONS);
+    if (rows.length === 0) return;
+
+    const sorted = [...rows].sort((a, b) => (parseInt(a['ID'], 10) || 0) - (parseInt(b['ID'], 10) || 0));
+
+    const now = new Date();
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+    const dayOfYear = Math.floor((now - startOfYear) / 86400000) + 1;
+    const quote = sorted[(dayOfYear - 1) % sorted.length];
+
+    el.textContent = `« ${quote['Texte'] || ''} »`;
+    el.hidden = false;
+  } catch (err) {
+    console.error(err);
+  }
 }
 
 // L'écran natif "Ajouter l'événement" d'iOS, ouvert depuis un lien .ics,

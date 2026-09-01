@@ -310,6 +310,15 @@ body {
   color: var(--text-muted);
 }
 
+.dash-quote {
+  margin: -4px 0 4px;
+  padding: 0 4px;
+  font-size: 14px;
+  font-style: italic;
+  text-align: center;
+  color: var(--text-muted);
+}
+
 .dash-card {
   border-left: 4px solid transparent;
 }
