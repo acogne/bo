@@ -143,7 +143,14 @@ async function renderDashboard(container) {
       <h3>Cette semaine</h3>
       <p id="dash-week-info" class="text-muted">Chargement…</p>
       <div id="dash-week-events"><p class="text-muted">Chargement des événements…</p></div>
-      <a id="dash-add-event-btn" class="btn btn-secondary" href="#">+ Ajouter un événement</a>
+      <button type="button" id="dash-add-event-toggle" class="btn btn-secondary">+ Ajouter un événement</button>
+      <form id="dash-add-event-form" class="quick-add-form" hidden>
+        <input type="text" id="dash-event-titre" placeholder="Titre" required />
+        <input type="date" id="dash-event-date" required />
+        <input type="time" id="dash-event-heure" required />
+        <input type="text" id="dash-event-lieu" placeholder="Lieu (optionnel)" />
+        <button type="submit" class="btn">Ajouter au calendrier</button>
+      </form>
     </section>
     <section class="card dash-card">
       <h3>Tâches du jour</h3>
@@ -166,7 +173,7 @@ async function renderDashboard(container) {
     </section>
   `;
 
-  document.getElementById('dash-add-event-btn').setAttribute('href', buildAddEventIcsUrl());
+  initDashAddEventForm();
 
   renderDashboardWeekInfo();
   renderDashboardWeekEvents();
@@ -175,18 +182,47 @@ async function renderDashboard(container) {
   renderDashboardVehicule();
 }
 
-// Génère un événement .ics vierge (heure suivante, 1h de durée) en data URI.
-// Sur iPhone, taper ce lien ouvre directement l'écran natif "Ajouter
-// l'événement" du Calendrier (titre/date modifiables, calendrier au choix) —
-// iOS n'offre aucun moyen, depuis une page web, de forcer un calendrier
-// précis à l'avance : c'est le plus proche possible sans app native.
-function buildAddEventIcsUrl() {
+// L'écran natif "Ajouter l'événement" d'iOS, ouvert depuis un lien .ics,
+// n'autorise à modifier que le calendrier de destination (titre/heure/lieu
+// affichés en lecture seule). On récupère donc titre/date/heure/lieu ici,
+// dans un mini-formulaire, et on les injecte directement dans le .ics
+// généré — il ne reste plus qu'à choisir le calendrier côté iOS.
+function initDashAddEventForm() {
+  const toggleBtn = document.getElementById('dash-add-event-toggle');
+  const form = document.getElementById('dash-add-event-form');
+  const dateInput = document.getElementById('dash-event-date');
+  const heureInput = document.getElementById('dash-event-heure');
+
+  const pad = (n) => String(n).padStart(2, '0');
+  const defaultStart = new Date();
+  defaultStart.setMinutes(0, 0, 0);
+  defaultStart.setHours(defaultStart.getHours() + 1);
+  dateInput.value = `${defaultStart.getFullYear()}-${pad(defaultStart.getMonth() + 1)}-${pad(defaultStart.getDate())}`;
+  heureInput.value = `${pad(defaultStart.getHours())}:${pad(defaultStart.getMinutes())}`;
+
+  toggleBtn.addEventListener('click', () => {
+    form.hidden = !form.hidden;
+  });
+
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+
+    const titre = document.getElementById('dash-event-titre').value.trim();
+    const lieu = document.getElementById('dash-event-lieu').value.trim();
+    const [year, month, day] = dateInput.value.split('-').map(Number);
+    const [hours, minutes] = heureInput.value.split(':').map(Number);
+    const start = new Date(year, month - 1, day, hours, minutes);
+    const end = new Date(start.getTime() + 60 * 60 * 1000);
+
+    window.location.href = buildAddEventIcsUrl({ titre, lieu, start, end });
+  });
+}
+
+function buildAddEventIcsUrl({ titre, lieu, start, end }) {
   const pad = (n) => String(n).padStart(2, '0');
 
-  const start = new Date();
-  start.setMinutes(0, 0, 0);
-  start.setHours(start.getHours() + 1);
-  const end = new Date(start.getTime() + 60 * 60 * 1000);
+  const escapeIcsText = (str) =>
+    str.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,');
 
   const formatLocal = (date) =>
     `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}T${pad(date.getHours())}${pad(date.getMinutes())}00`;
@@ -203,10 +239,11 @@ function buildAddEventIcsUrl() {
     `DTSTAMP:${formatUtc(new Date())}`,
     `DTSTART:${formatLocal(start)}`,
     `DTEND:${formatLocal(end)}`,
-    'SUMMARY:',
+    `SUMMARY:${escapeIcsText(titre)}`,
+    lieu ? `LOCATION:${escapeIcsText(lieu)}` : null,
     'END:VEVENT',
     'END:VCALENDAR'
-  ].join('\r\n');
+  ].filter(Boolean).join('\r\n');
 
   return `data:text/calendar;charset=utf-8,${encodeURIComponent(ics)}`;
 }
