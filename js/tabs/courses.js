@@ -79,6 +79,9 @@
         SheetsAPI.getRows(SHEET_CHAT)
       ]);
 
+      const coursesPendingCount = coursesRes.rows.filter((r) => (r['Acheté'] || '').trim().toLowerCase() !== 'oui').length;
+      setCoursesBadgeCount(coursesPendingCount);
+
       const entries = [
         ...coursesRes.rows.map((raw) => ({ raw, sheet: 'courses' })),
         ...chatRes.rows.map((raw) => ({ raw, sheet: 'chat' }))
@@ -143,6 +146,7 @@
 
     try {
       await markDone(entry);
+      if (entry.sheet === 'courses') refreshCoursesBadge();
 
       setTimeout(() => {
         chip.classList.add('task-chip--exit');

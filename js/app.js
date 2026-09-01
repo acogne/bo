@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   injectMenuIcons();
-  document.getElementById('courses-shortcut-btn').innerHTML = Icons.svg('courses');
+  initCoursesShortcutIcon();
   initFieldBlurOnOutsideTap();
 
   window.addEventListener('hashchange', renderRoute);
@@ -65,6 +65,44 @@ function resetIOSZoom() {
   setTimeout(() => viewport.setAttribute('content', original), 100);
 }
 
+function initCoursesShortcutIcon() {
+  const btn = document.getElementById('courses-shortcut-btn');
+  btn.innerHTML = Icons.svg('courses');
+
+  const badge = document.createElement('span');
+  badge.id = 'courses-badge';
+  badge.className = 'icon-badge';
+  badge.hidden = true;
+  btn.appendChild(badge);
+}
+
+// Affiche/masque le badge rouge sur le raccourci Courses du header. Le
+// nombre d'articles restants est calculé par courses.js (qui a déjà les
+// lignes en main après chaque chargement/ajout/modification) ; les autres
+// déclencheurs (login, refresh global) passent par refreshCoursesBadge()
+// ci-dessous, qui va chercher les lignes lui-même.
+function setCoursesBadgeCount(count) {
+  const badge = document.getElementById('courses-badge');
+  if (!badge) return;
+  if (count > 0) {
+    badge.textContent = count > 99 ? '99+' : String(count);
+    badge.hidden = false;
+  } else {
+    badge.hidden = true;
+  }
+}
+
+async function refreshCoursesBadge() {
+  if (!Auth.isLoggedIn()) return;
+  try {
+    const { rows } = await SheetsAPI.getRows(CONFIG.SHEETS.COURSES);
+    const count = rows.filter((r) => (r['Acheté'] || '').trim().toLowerCase() !== 'oui').length;
+    setCoursesBadgeCount(count);
+  } catch (err) {
+    console.error(err);
+  }
+}
+
 function renderAuthState(user) {
   const loginView = document.getElementById('login-view');
   const appView = document.getElementById('app-view');
@@ -75,6 +113,7 @@ function renderAuthState(user) {
     appView.hidden = false;
     userLabel.textContent = user.email;
     renderRoute();
+    refreshCoursesBadge();
   } else {
     loginView.hidden = false;
     appView.hidden = true;
@@ -112,6 +151,7 @@ function onRefreshClick() {
   void btn.offsetWidth; // relance l'animation même si elle vient de tourner
   btn.classList.add('icon-btn--spin');
   renderRoute();
+  refreshCoursesBadge();
 }
 
 function currentRoute() {
