@@ -143,6 +143,7 @@ async function renderDashboard(container) {
       <h3>Cette semaine</h3>
       <p id="dash-week-info" class="text-muted">Chargement…</p>
       <div id="dash-week-events"><p class="text-muted">Chargement des événements…</p></div>
+      <a id="dash-add-event-btn" class="btn btn-secondary" href="#">+ Ajouter un événement</a>
     </section>
     <section class="card dash-card">
       <h3>Tâches du jour</h3>
@@ -165,11 +166,49 @@ async function renderDashboard(container) {
     </section>
   `;
 
+  document.getElementById('dash-add-event-btn').setAttribute('href', buildAddEventIcsUrl());
+
   renderDashboardWeekInfo();
   renderDashboardWeekEvents();
   renderDashboardTodayTasks();
   renderDashboardCompteurs();
   renderDashboardVehicule();
+}
+
+// Génère un événement .ics vierge (heure suivante, 1h de durée) en data URI.
+// Sur iPhone, taper ce lien ouvre directement l'écran natif "Ajouter
+// l'événement" du Calendrier (titre/date modifiables, calendrier au choix) —
+// iOS n'offre aucun moyen, depuis une page web, de forcer un calendrier
+// précis à l'avance : c'est le plus proche possible sans app native.
+function buildAddEventIcsUrl() {
+  const pad = (n) => String(n).padStart(2, '0');
+
+  const start = new Date();
+  start.setMinutes(0, 0, 0);
+  start.setHours(start.getHours() + 1);
+  const end = new Date(start.getTime() + 60 * 60 * 1000);
+
+  const formatLocal = (date) =>
+    `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}T${pad(date.getHours())}${pad(date.getMinutes())}00`;
+
+  const formatUtc = (date) =>
+    `${date.getUTCFullYear()}${pad(date.getUTCMonth() + 1)}${pad(date.getUTCDate())}T${pad(date.getUTCHours())}${pad(date.getUTCMinutes())}${pad(date.getUTCSeconds())}Z`;
+
+  const ics = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Dashboard Foyer//FR',
+    'BEGIN:VEVENT',
+    `UID:${Date.now()}@dashboard-foyer`,
+    `DTSTAMP:${formatUtc(new Date())}`,
+    `DTSTART:${formatLocal(start)}`,
+    `DTEND:${formatLocal(end)}`,
+    'SUMMARY:',
+    'END:VEVENT',
+    'END:VCALENDAR'
+  ].join('\r\n');
+
+  return `data:text/calendar;charset=utf-8,${encodeURIComponent(ics)}`;
 }
 
 async function renderDashboardWeekInfo() {
