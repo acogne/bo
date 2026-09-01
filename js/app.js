@@ -158,6 +158,10 @@ async function renderDashboard(container) {
       </form>
     </section>
     <section class="card dash-card">
+      <h3>Prochains week-ends</h3>
+      <div id="dash-weekends"><p class="text-muted">Chargement…</p></div>
+    </section>
+    <section class="card dash-card">
       <h3>Tâches du jour</h3>
       <div id="dash-today-tasks"><p class="text-muted">Chargement…</p></div>
     </section>
@@ -180,6 +184,7 @@ async function renderDashboard(container) {
   renderDashboardQuote();
   renderDashboardWeekInfo();
   renderDashboardWeekEvents();
+  renderDashboardWeekends();
   renderDashboardTodayTasks();
   renderDashboardCompteurs();
   renderDashboardVehicule();
@@ -309,6 +314,23 @@ function formatEventParts(event) {
   return { dayAbbrev, dayNum, timeLabel };
 }
 
+function buildEventRow(ev) {
+  const { dayAbbrev, dayNum, timeLabel } = formatEventParts(ev);
+  const row = document.createElement('div');
+  row.className = 'event-row';
+  row.innerHTML = `
+    <span class="event-badge">
+      <span class="event-badge-day">${escapeHtml(dayAbbrev)}</span>
+      <span class="event-badge-num">${dayNum}</span>
+    </span>
+    <span class="event-row-body">
+      <span class="event-row-title">${escapeHtml(ev.summary || '(Sans titre)')}</span>
+      <span class="event-row-time">${escapeHtml(timeLabel)}</span>
+    </span>
+  `;
+  return row;
+}
+
 async function renderDashboardWeekEvents() {
   const el = document.getElementById('dash-week-events');
   try {
@@ -321,25 +343,79 @@ async function renderDashboardWeekEvents() {
 
     el.innerHTML = '<div class="event-rows"></div>';
     const wrap = el.querySelector('.event-rows');
-    events.forEach((ev) => {
-      const { dayAbbrev, dayNum, timeLabel } = formatEventParts(ev);
-      const row = document.createElement('div');
-      row.className = 'event-row';
-      row.innerHTML = `
-        <span class="event-badge">
-          <span class="event-badge-day">${escapeHtml(dayAbbrev)}</span>
-          <span class="event-badge-num">${dayNum}</span>
-        </span>
-        <span class="event-row-body">
-          <span class="event-row-title">${escapeHtml(ev.summary || '(Sans titre)')}</span>
-          <span class="event-row-time">${escapeHtml(timeLabel)}</span>
-        </span>
-      `;
-      wrap.appendChild(row);
-    });
+    events.forEach((ev) => wrap.appendChild(buildEventRow(ev)));
   } catch (err) {
     console.error(err);
     el.innerHTML = '<p class="text-muted">Impossible de charger les événements de l\'agenda.</p>';
+  }
+}
+
+// Regroupe les 4 prochains week-ends (samedi-dimanche) — celui en cours
+// compte comme le premier si on est déjà samedi ou dimanche.
+function getNextWeekends(now, count) {
+  const monday = DateUtils.startOfWeekMonday(now);
+  const saturday = new Date(monday);
+  saturday.setDate(saturday.getDate() + 5);
+
+  const sundayEnd = new Date(saturday);
+  sundayEnd.setDate(sundayEnd.getDate() + 1);
+  sundayEnd.setHours(23, 59, 59, 999);
+  if (sundayEnd < now) {
+    saturday.setDate(saturday.getDate() + 7);
+  }
+
+  const weekends = [];
+  for (let i = 0; i < count; i++) {
+    const sat = new Date(saturday);
+    sat.setDate(sat.getDate() + i * 7);
+    const sun = new Date(sat);
+    sun.setDate(sun.getDate() + 1);
+    weekends.push({ saturday: sat, sunday: sun });
+  }
+  return weekends;
+}
+
+function formatWeekendLabel(weekend) {
+  const satLabel = weekend.saturday.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+  const sunLabel = weekend.sunday.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+  return `${satLabel} - ${sunLabel}`;
+}
+
+async function renderDashboardWeekends() {
+  const el = document.getElementById('dash-weekends');
+  try {
+    const now = new Date();
+    const weekends = getNextWeekends(now, 4);
+    const lastSunday = weekends[weekends.length - 1].sunday;
+    const daysNeeded = Math.ceil((lastSunday - now) / 86400000) + 1;
+
+    const events = await CalendarAPI.listUpcomingEvents({ days: daysNeeded, maxResults: 100 });
+
+    el.innerHTML = '';
+    weekends.forEach((weekend) => {
+      const weekendEvents = events.filter((ev) => {
+        const date = parseCalendarDate(ev.start || {});
+        return DateUtils.isSameDay(date, weekend.saturday) || DateUtils.isSameDay(date, weekend.sunday);
+      });
+
+      const group = document.createElement('div');
+      group.className = 'weekend-group';
+      group.innerHTML = `<h4 class="weekend-group-title">${escapeHtml(formatWeekendLabel(weekend))}</h4>`;
+
+      if (weekendEvents.length === 0) {
+        group.innerHTML += '<p class="text-muted">Rien de prévu.</p>';
+      } else {
+        const wrap = document.createElement('div');
+        wrap.className = 'event-rows';
+        weekendEvents.forEach((ev) => wrap.appendChild(buildEventRow(ev)));
+        group.appendChild(wrap);
+      }
+
+      el.appendChild(group);
+    });
+  } catch (err) {
+    console.error(err);
+    el.innerHTML = '<p class="text-muted">Impossible de charger les événements des week-ends.</p>';
   }
 }
 

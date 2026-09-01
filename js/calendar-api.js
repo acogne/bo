@@ -51,7 +51,7 @@ const CalendarAPI = (() => {
   }
 
   // Événements des `days` prochains jours (défaut 7), triés par heure de début.
-  async function listUpcomingEvents({ days = 7 } = {}) {
+  async function listUpcomingEvents({ days = 7, maxResults = 20 } = {}) {
     const calendarId = CONFIG.CALENDAR_ID;
     const timeMin = new Date();
     const timeMax = new Date(timeMin.getTime() + days * 24 * 60 * 60 * 1000);
@@ -60,7 +60,7 @@ const CalendarAPI = (() => {
       timeMax: timeMax.toISOString(),
       singleEvents: 'true',
       orderBy: 'startTime',
-      maxResults: '20'
+      maxResults: String(maxResults)
     });
     const url = `${BASE_URL}/${encodeURIComponent(calendarId)}/events?${params.toString()}`;
 

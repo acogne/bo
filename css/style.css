@@ -568,6 +568,21 @@ body {
   font-weight: 500;
 }
 
+/* ---------- Groupes par week-end (cartouche "Prochains week-ends") ---------- */
+
+.weekend-group + .weekend-group {
+  margin-top: 14px;
+}
+
+.weekend-group-title {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+}
+
 /* ---------- Cotillons (tâche Quotidien cochée) ---------- */
 
 .confetti-container {
