@@ -172,13 +172,6 @@ async function renderDashboard(container) {
       <h3>Entretien véhicule</h3>
       <div id="dash-vehicule-list"><p class="text-muted">Chargement…</p></div>
     </section>
-    <section class="card dash-card">
-      <h3>Alertes</h3>
-      <p class="text-muted">Bientôt disponible (Calendrier).</p>
-    </section>
-    <section class="card dash-card">
-      <a href="#/courses" class="btn">Accès rapide · Courses</a>
-    </section>
   `;
 
   initDashAddEventForm();
