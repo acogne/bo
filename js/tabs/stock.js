@@ -37,6 +37,7 @@
           <option value="Épuisé">Épuisé</option>
         </select>
         <input type="text" id="stock-add-seuil" placeholder="Seuil d'alerte (ex. 2 paquets, optionnel)" />
+        <input type="date" id="stock-add-peremption" placeholder="Date de péremption (optionnel)" />
         <button type="submit" class="btn">Enregistrer</button>
       </form>
     `;
@@ -76,6 +77,7 @@
 
     const metaParts = [article['Statut'] || ''];
     if (article['Seuil_alerte']) metaParts.push(`seuil : ${article['Seuil_alerte']}`);
+    if (article['Péremption']) metaParts.push(`périme le ${formatDate(article['Péremption'])}`);
 
     chip.innerHTML = `
       <span class="task-chip-check" aria-hidden="true"></span>
@@ -129,6 +131,7 @@
         row.className = 'info-row';
         const metaParts = [a['Statut'] || 'OK'];
         if (a['Seuil_alerte']) metaParts.push(`seuil : ${a['Seuil_alerte']}`);
+        if (a['Péremption']) metaParts.push(`périme le ${formatDate(a['Péremption'])}`);
         if (a['Dernière_maj']) metaParts.push(`maj le ${formatDate(a['Dernière_maj'])}`);
         row.innerHTML = `
           <div class="info-row-title">${escapeHtml(a['Article'] || '')}</div>
@@ -148,6 +151,7 @@
     const articleInput = container.querySelector('#stock-add-article');
     const statutSelect = container.querySelector('#stock-add-statut');
     const seuilInput = container.querySelector('#stock-add-seuil');
+    const peremptionInput = container.querySelector('#stock-add-peremption');
 
     const article = articleInput.value.trim();
     if (!article) return;
@@ -164,6 +168,7 @@
           ...existing,
           'Statut': statutSelect.value,
           'Seuil_alerte': seuilInput.value.trim() || existing['Seuil_alerte'],
+          'Péremption': peremptionInput.value || existing['Péremption'],
           'Dernière_maj': DateUtils.toISODate()
         });
       } else {
@@ -176,6 +181,7 @@
           'ID': maxId + 1,
           'Article': article,
           'Seuil_alerte': seuilInput.value.trim(),
+          'Péremption': peremptionInput.value,
           'Statut': statutSelect.value,
           'Dernière_maj': DateUtils.toISODate()
         });
@@ -184,6 +190,7 @@
       articleInput.value = '';
       statutSelect.value = 'OK';
       seuilInput.value = '';
+      peremptionInput.value = '';
 
       await Promise.all([renderPending(container), renderAll(container)]);
     } catch (err) {
