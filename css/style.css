@@ -172,6 +172,8 @@ body {
 .topbar-title {
   font-size: 17px;
   flex: 1;
+  color: inherit;
+  text-decoration: none;
 }
 
 .icon-btn--spin {
@@ -184,13 +186,18 @@ body {
 }
 
 .icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
   border: none;
   background: transparent;
-  font-size: 22px;
+  font-size: 20px;
   line-height: 1;
   cursor: pointer;
   color: var(--text);
-  padding: 4px 8px;
+  padding: 0;
 }
 
 #app-content {

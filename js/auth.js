@@ -36,7 +36,22 @@ const Auth = (() => {
   }
 
   function init() {
-    ensureTokenClient();
+    attemptSilentLogin();
+  }
+
+  // Tente une reconnexion sans interaction (pas de popup ni d'écran de
+  // consentement) : si le navigateur a encore une session Google active et
+  // que l'utilisateur a déjà autorisé l'app une fois, ça reconnecte tout
+  // seul à chaque ouverture. Si ça échoue (pas de session, consentement
+  // révoqué...), l'écran de login classique reste affiché — pas d'alerte,
+  // c'est une tentative silencieuse.
+  function attemptSilentLogin(retriesLeft = 20) {
+    if (!ensureTokenClient()) {
+      if (retriesLeft <= 0) return;
+      setTimeout(() => attemptSilentLogin(retriesLeft - 1), 250);
+      return;
+    }
+    tokenClient.requestAccessToken({ prompt: '' });
   }
 
   function login() {
