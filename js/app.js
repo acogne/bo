@@ -160,6 +160,10 @@ async function renderDashboard(container) {
       <h3>Tâches du jour</h3>
       <div id="dash-today-tasks"><p class="text-muted">Chargement…</p></div>
     </section>
+    <section class="card dash-card">
+      <h3>Tâches de la semaine</h3>
+      <div id="dash-week-tasks"><p class="text-muted">Chargement…</p></div>
+    </section>
     <section class="card dash-card" id="dash-compteurs-card" hidden>
       <h3>Compteurs à relever</h3>
       <div id="dash-compteurs-list"><p class="text-muted">Chargement…</p></div>
@@ -322,40 +326,48 @@ async function renderDashboardWeekEvents() {
 }
 
 async function renderDashboardTodayTasks() {
-  const el = document.getElementById('dash-today-tasks');
+  const dailyEl = document.getElementById('dash-today-tasks');
+  const weeklyEl = document.getElementById('dash-week-tasks');
   try {
     const now = new Date();
     const [menageRes, dueMedicaments] = await Promise.all([
       SheetsAPI.getRows(CONFIG.SHEETS.MENAGE_TACHES),
       ChatTab.getDueMedicaments(now)
     ]);
-    const todayTasks = menageRes.rows.filter((t) => {
-      const freq = (t['Fréquence'] || '').trim().toLowerCase();
-      return (freq === 'quotidien' || freq === 'hebdo') && TaskReset.isVisible(t, now);
-    });
 
-    const items = [
-      ...todayTasks.map((t) => ({ type: 'menage', task: t, label: t['Nom'] || '' })),
+    const visibleTasks = menageRes.rows.filter((t) => TaskReset.isVisible(t, now));
+    const dailyTasks = visibleTasks.filter((t) => (t['Fréquence'] || '').trim().toLowerCase() === 'quotidien');
+    const weeklyTasks = visibleTasks.filter((t) => (t['Fréquence'] || '').trim().toLowerCase() === 'hebdo');
+
+    const dailyItems = [
+      ...dailyTasks.map((t) => ({ type: 'menage', task: t, label: t['Nom'] || '' })),
       ...dueMedicaments.map((m) => ({ type: 'medicament', task: m, label: ChatTab.formatMedicamentLabel(m) }))
     ];
+    const weeklyItems = weeklyTasks.map((t) => ({ type: 'menage', task: t, label: t['Nom'] || '' }));
 
-    if (items.length === 0) {
-      el.innerHTML = '<p class="text-muted">Rien à faire aujourd\'hui 🎉</p>';
-      return;
-    }
-
-    el.innerHTML = '';
-    const chipsWrap = document.createElement('div');
-    chipsWrap.className = 'task-chips';
-    items.forEach((item) => chipsWrap.appendChild(renderDashboardTaskChip(item)));
-    el.appendChild(chipsWrap);
+    renderDashboardTaskList(dailyEl, dailyItems, "Rien à faire aujourd'hui 🎉");
+    renderDashboardTaskList(weeklyEl, weeklyItems, 'Rien à faire cette semaine 🎉');
   } catch (err) {
     console.error(err);
-    el.innerHTML = '<p class="text-muted">Impossible de charger les tâches.</p>';
+    dailyEl.innerHTML = '<p class="text-muted">Impossible de charger les tâches.</p>';
+    weeklyEl.innerHTML = '<p class="text-muted">Impossible de charger les tâches.</p>';
   }
 }
 
-function renderDashboardTaskChip(item) {
+function renderDashboardTaskList(el, items, emptyText) {
+  if (items.length === 0) {
+    el.innerHTML = `<p class="text-muted">${emptyText}</p>`;
+    return;
+  }
+
+  el.innerHTML = '';
+  const chipsWrap = document.createElement('div');
+  chipsWrap.className = 'task-chips';
+  items.forEach((item) => chipsWrap.appendChild(renderDashboardTaskChip(item, emptyText)));
+  el.appendChild(chipsWrap);
+}
+
+function renderDashboardTaskChip(item, emptyText) {
   const domain = item.type === 'medicament' ? 'chat' : 'menage';
   const chip = document.createElement('button');
   chip.type = 'button';
@@ -366,11 +378,11 @@ function renderDashboardTaskChip(item) {
       <span class="task-chip-name"><span class="task-chip-icon">${Icons.svg(domain)}</span>${escapeHtml(item.label)}</span>
     </span>
   `;
-  chip.addEventListener('click', () => onDashboardTaskDone(chip, item));
+  chip.addEventListener('click', () => onDashboardTaskDone(chip, item, emptyText));
   return chip;
 }
 
-async function onDashboardTaskDone(chip, item) {
+async function onDashboardTaskDone(chip, item, emptyText) {
   if (chip.classList.contains('task-chip--busy')) return;
   chip.classList.add('task-chip--busy', 'task-chip--done');
   Confetti.burst();
@@ -389,7 +401,7 @@ async function onDashboardTaskDone(chip, item) {
         const wrap = chip.closest('.task-chips');
         chip.remove();
         if (wrap && wrap.querySelectorAll('.task-chip').length === 0) {
-          wrap.parentElement.innerHTML = '<p class="text-muted">Rien à faire aujourd\'hui 🎉</p>';
+          wrap.parentElement.innerHTML = `<p class="text-muted">${emptyText}</p>`;
         }
       }, 300);
     }, 500);
