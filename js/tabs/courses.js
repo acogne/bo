@@ -108,7 +108,7 @@
 
         const chipsWrap = document.createElement('div');
         chipsWrap.className = 'task-chips';
-        items.forEach((entry) => chipsWrap.appendChild(renderChip(entry)));
+        items.forEach((entry) => chipsWrap.appendChild(renderChip(entry, container)));
 
         group.appendChild(chipsWrap);
         listEl.appendChild(group);
@@ -119,23 +119,23 @@
     }
   }
 
-  function renderChip(entry) {
-    const chip = document.createElement('button');
-    chip.type = 'button';
+  function renderChip(entry, container) {
+    const chip = document.createElement('div');
     chip.className = `task-chip ${entry.sheet === 'chat' ? 'accent-chat' : 'accent-courses'}`;
     chip.dataset.rowIndex = entry.raw._rowIndex;
 
     const metaParts = getMetaParts(entry);
 
     chip.innerHTML = `
-      <span class="task-chip-check" aria-hidden="true"></span>
-      <span class="task-chip-body">
+      <button type="button" class="task-chip-check" aria-label="Marquer comme acheté"></button>
+      <button type="button" class="task-chip-body">
         <span class="task-chip-name"><span class="task-chip-icon">${Icons.svg(entry.sheet === 'chat' ? 'chat' : 'courses')}</span>${escapeHtml(getArticle(entry))}</span>
         <span class="task-chip-meta">${escapeHtml(metaParts.join(' · '))}</span>
-      </span>
+      </button>
     `;
 
-    chip.addEventListener('click', () => onCheckItem(chip, entry));
+    chip.querySelector('.task-chip-check').addEventListener('click', () => onCheckItem(chip, entry));
+    chip.querySelector('.task-chip-body').addEventListener('click', () => onEditItem(chip, entry, container));
     return chip;
   }
 
@@ -161,6 +161,67 @@
       console.error(err);
       chip.classList.remove('task-chip--busy', 'task-chip--done');
       alert("Impossible d'enregistrer cet article, réessaie.");
+    }
+  }
+
+  function onEditItem(chip, entry, container) {
+    if (chip.classList.contains('task-chip--editing')) return;
+    chip.classList.add('task-chip--editing');
+
+    const isChat = entry.sheet === 'chat';
+
+    chip.innerHTML = `
+      <form class="task-chip-edit-form">
+        <input type="text" class="task-chip-edit-article" placeholder="Article" value="${escapeAttr(getArticle(entry))}" required />
+        ${isChat ? `
+          <input type="text" class="task-chip-edit-notes" placeholder="Notes" value="${escapeAttr(entry.raw['Notes'] || '')}" />
+        ` : `
+          <input type="text" class="task-chip-edit-quantite" placeholder="Quantité" value="${escapeAttr(entry.raw['Quantité'] || '')}" />
+          <input type="text" class="task-chip-edit-unite" placeholder="Unité" value="${escapeAttr(entry.raw['Unité'] || '')}" />
+          <input type="text" class="task-chip-edit-categorie" placeholder="Catégorie" value="${escapeAttr(entry.raw['Catégorie'] || '')}" />
+        `}
+        <div class="task-chip-edit-actions">
+          <button type="submit" class="btn">Enregistrer</button>
+          <button type="button" class="btn btn-secondary task-chip-edit-cancel">Annuler</button>
+        </div>
+      </form>
+    `;
+
+    const form = chip.querySelector('.task-chip-edit-form');
+    form.querySelector('.task-chip-edit-cancel').addEventListener('click', () => renderList(container));
+    form.addEventListener('submit', (e) => onSaveEdit(e, entry, container, isChat));
+  }
+
+  async function onSaveEdit(e, entry, container, isChat) {
+    e.preventDefault();
+    const form = e.target;
+    const article = form.querySelector('.task-chip-edit-article').value.trim();
+    if (!article) return;
+
+    const saveBtn = form.querySelector('button[type="submit"]');
+    saveBtn.disabled = true;
+
+    try {
+      if (isChat) {
+        const notes = form.querySelector('.task-chip-edit-notes').value.trim();
+        await SheetsAPI.updateRow(SHEET_CHAT, entry.raw._rowIndex, { ...entry.raw, 'Article': article, 'Notes': notes });
+      } else {
+        const quantite = form.querySelector('.task-chip-edit-quantite').value.trim();
+        const unite = form.querySelector('.task-chip-edit-unite').value.trim();
+        const categorie = form.querySelector('.task-chip-edit-categorie').value.trim();
+        await SheetsAPI.updateRow(SHEET, entry.raw._rowIndex, {
+          ...entry.raw,
+          'Article': article,
+          'Quantité': quantite,
+          'Unité': unite,
+          'Catégorie': categorie
+        });
+      }
+      await renderList(container);
+    } catch (err) {
+      console.error(err);
+      alert("Impossible d'enregistrer les modifications, réessaie.");
+      saveBtn.disabled = false;
     }
   }
 
@@ -231,6 +292,10 @@
     const div = document.createElement('div');
     div.textContent = String(str);
     return div.innerHTML;
+  }
+
+  function escapeAttr(str) {
+    return escapeHtml(str).replace(/"/g, '&quot;');
   }
 
   TabRegistry.register('courses', { title: 'Courses', accent: 'courses', render });

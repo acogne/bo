@@ -358,12 +358,55 @@ body {
   border: 2px solid var(--text-muted);
   flex-shrink: 0;
   position: relative;
+  padding: 0;
+  background: none;
+  cursor: pointer;
 }
 
 .task-chip-body {
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
+  border: none;
+  padding: 0;
+  margin: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.task-chip-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.task-chip-edit-form input {
+  border: 1px solid var(--input-border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.task-chip-edit-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.task-chip-edit-actions .btn {
+  flex: 1;
+  margin-top: 0;
+  padding: 10px 14px;
+  font-size: 14px;
 }
 
 .task-chip-name {
