@@ -31,11 +31,35 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   injectMenuIcons();
+  initFieldBlurOnOutsideTap();
 
   window.addEventListener('hashchange', renderRoute);
 
   registerServiceWorker();
 });
+
+// Sur mobile, taper dans un champ zoome légèrement l'écran (comportement
+// natif iOS). En tapant en dehors du champ, on force sa perte de focus
+// (ce qui referme le clavier) puis on force Safari à recalculer le zoom
+// de la page — sans quoi, en PWA/standalone, la page peut rester zoomée
+// même une fois le clavier fermé.
+function initFieldBlurOnOutsideTap() {
+  document.addEventListener('pointerdown', (event) => {
+    const active = document.activeElement;
+    if (!active || !active.matches('input, textarea, select')) return;
+    if (active.contains(event.target)) return;
+    active.blur();
+    resetIOSZoom();
+  });
+}
+
+function resetIOSZoom() {
+  const viewport = document.querySelector('meta[name="viewport"]');
+  if (!viewport) return;
+  const original = viewport.getAttribute('content');
+  viewport.setAttribute('content', `${original}, maximum-scale=1`);
+  setTimeout(() => viewport.setAttribute('content', original), 100);
+}
 
 function renderAuthState(user) {
   const loginView = document.getElementById('login-view');
