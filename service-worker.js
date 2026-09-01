@@ -2,7 +2,7 @@
 // basique. Les appels à l'API Google (Sheets/Calendar/OAuth) ne sont jamais
 // mis en cache — ils doivent toujours passer par le réseau.
 
-const CACHE_NAME = 'dashboard-foyer-v35';
+const CACHE_NAME = 'dashboard-foyer-v36';
 
 const APP_SHELL = [
   './',

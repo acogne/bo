@@ -1,8 +1,13 @@
 // Onglet Budget : dépenses du foyer (ID, Date, Libellé, Montant, Catégorie,
-// Payé_par, Remboursement_dû). Remboursement_dû est traité comme un montant
-// encore dû (chaîne numérique) : tant qu'il est > 0, la dépense apparaît dans
-// "Remboursements en attente" ; cocher la remet à 0 (réglé), sans y toucher
-// pour les dépenses qui n'ont jamais eu de remboursement à faire.
+// Payé_par, Remboursement_dû, Périodicité). Remboursement_dû est traité comme
+// un montant encore dû (chaîne numérique) : tant qu'il est > 0, la dépense
+// apparaît dans "Remboursements en attente" ; cocher la remet à 0 (réglé),
+// sans y toucher pour les dépenses qui n'ont jamais eu de remboursement à faire.
+//
+// Périodicité (Aucune/Mensuel/Annuel) sert aux montants fixes saisis une
+// seule fois (ex. loyer) : comme la remise à zéro des tâches Ménage, RIEN
+// n'est jamais réécrit dans le Sheet — le total "Ce mois-ci" recalcule à
+// l'affichage si la ligne d'origine doit compter pour le mois courant.
 
 (function registerBudgetTab() {
   const SHEET = CONFIG.SHEETS.BUDGET;
@@ -18,6 +23,26 @@
 
   function isPending(entry) {
     return parseAmount(entry['Remboursement_dû']) > 0;
+  }
+
+  // Une dépense à périodicité Mensuel/Annuel compte pour le mois courant même
+  // si sa Date d'origine est un mois différent — sauf le mois d'origine
+  // lui-même, déjà compté via la comparaison de date classique (pas de doublon).
+  function isRecurringThisMonth(entry, now) {
+    const periodicite = (entry['Périodicité'] || '').trim().toLowerCase();
+    if (periodicite !== 'mensuel' && periodicite !== 'annuel') return false;
+
+    const origin = DateUtils.parseDate(entry['Date']);
+    if (!origin) return false;
+
+    const sameMonth = origin.getFullYear() === now.getFullYear() && origin.getMonth() === now.getMonth();
+    if (sameMonth) return false;
+
+    if (periodicite === 'mensuel') {
+      return origin < new Date(now.getFullYear(), now.getMonth(), 1);
+    }
+    // Annuel : ne compte que le mois anniversaire, les années suivantes.
+    return origin.getMonth() === now.getMonth() && origin.getFullYear() < now.getFullYear();
   }
 
   async function render(container) {
@@ -42,6 +67,11 @@
         <input type="text" id="budget-add-montant" placeholder="Montant (ex. 45.90)" required inputmode="decimal" />
         <input type="text" id="budget-add-categorie" placeholder="Catégorie (ex. Alimentation)" />
         <input type="date" id="budget-add-date" />
+        <select id="budget-add-periodicite">
+          <option value="">Ponctuel (pas de récurrence)</option>
+          <option value="Mensuel">Tous les mois (ex. loyer)</option>
+          <option value="Annuel">Tous les ans</option>
+        </select>
         <input type="text" id="budget-add-payepar" placeholder="Payé par" />
         <input type="text" id="budget-add-remboursement" placeholder="Montant à rembourser (optionnel)" inputmode="decimal" />
         <button type="submit" class="btn">Ajouter une dépense</button>
@@ -69,7 +99,8 @@
       const total = rows
         .filter((r) => {
           const d = DateUtils.parseDate(r['Date']);
-          return d && d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+          const sameMonth = d && d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+          return sameMonth || isRecurringThisMonth(r, now);
         })
         .reduce((sum, r) => sum + parseAmount(r['Montant']), 0);
 
@@ -162,6 +193,7 @@
         const metaParts = [formatDate(r['Date']), formatAmount(r['Montant'])];
         if (r['Catégorie']) metaParts.push(r['Catégorie']);
         if (r['Payé_par']) metaParts.push(`payé par ${r['Payé_par']}`);
+        if (r['Périodicité']) metaParts.push(`🔁 ${r['Périodicité']}`);
         row.innerHTML = `
           <div class="info-row-title">${escapeHtml(r['Libellé'] || '')}</div>
           <div class="info-row-meta">${escapeHtml(metaParts.join(' · '))}</div>
@@ -181,6 +213,7 @@
     const montantInput = container.querySelector('#budget-add-montant');
     const categorieInput = container.querySelector('#budget-add-categorie');
     const dateInput = container.querySelector('#budget-add-date');
+    const periodiciteSelect = container.querySelector('#budget-add-periodicite');
     const payeParInput = container.querySelector('#budget-add-payepar');
     const remboursementInput = container.querySelector('#budget-add-remboursement');
 
@@ -205,13 +238,15 @@
         'Montant': montant,
         'Catégorie': categorieInput.value.trim(),
         'Payé_par': payeParInput.value.trim(),
-        'Remboursement_dû': remboursementInput.value.trim()
+        'Remboursement_dû': remboursementInput.value.trim(),
+        'Périodicité': periodiciteSelect.value
       });
 
       libelleInput.value = '';
       montantInput.value = '';
       categorieInput.value = '';
       dateInput.value = '';
+      periodiciteSelect.value = '';
       remboursementInput.value = '';
 
       await Promise.all([
