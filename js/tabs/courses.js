@@ -62,9 +62,6 @@
         <input type="text" id="courses-add-quantite" placeholder="Quantité (ex. 2)" />
         <input type="text" id="courses-add-unite" placeholder="Unité (ex. kg, L, pièce)" />
         <input type="text" id="courses-add-categorie" placeholder="Catégorie (ex. Frais)" />
-        <label class="checkbox-label">
-          <input type="checkbox" id="courses-add-chat" /> Pour le chat
-        </label>
         <button type="submit" class="btn">Ajouter</button>
       </form>
     `;
@@ -231,7 +228,6 @@
     const quantiteInput = container.querySelector('#courses-add-quantite');
     const uniteInput = container.querySelector('#courses-add-unite');
     const categorieInput = container.querySelector('#courses-add-categorie');
-    const chatInput = container.querySelector('#courses-add-chat');
 
     const article = articleInput.value.trim();
     if (!article) return;
@@ -240,44 +236,28 @@
     submitBtn.disabled = true;
 
     try {
-      if (chatInput.checked) {
-        const { rows } = await SheetsAPI.getRows(SHEET_CHAT);
-        const maxId = rows.reduce((max, r) => {
-          const id = parseInt(r['ID'], 10);
-          return isNaN(id) ? max : Math.max(max, id);
-        }, 0);
+      const { rows } = await SheetsAPI.getRows(SHEET);
+      const maxId = rows.reduce((max, r) => {
+        const id = parseInt(r['ID'], 10);
+        return isNaN(id) ? max : Math.max(max, id);
+      }, 0);
 
-        await SheetsAPI.appendRow(SHEET_CHAT, {
-          'ID': maxId + 1,
-          'Article': article,
-          'Statut': 'À acheter',
-          'Notes': ''
-        });
-      } else {
-        const { rows } = await SheetsAPI.getRows(SHEET);
-        const maxId = rows.reduce((max, r) => {
-          const id = parseInt(r['ID'], 10);
-          return isNaN(id) ? max : Math.max(max, id);
-        }, 0);
+      const user = Auth.getUser();
 
-        const user = Auth.getUser();
-
-        await SheetsAPI.appendRow(SHEET, {
-          'ID': maxId + 1,
-          'Article': article,
-          'Quantité': quantiteInput.value.trim(),
-          'Unité': uniteInput.value.trim(),
-          'Catégorie': categorieInput.value.trim(),
-          'Ajouté_par': user ? (user.name || user.email) : '',
-          'Acheté': 'Non'
-        });
-      }
+      await SheetsAPI.appendRow(SHEET, {
+        'ID': maxId + 1,
+        'Article': article,
+        'Quantité': quantiteInput.value.trim(),
+        'Unité': uniteInput.value.trim(),
+        'Catégorie': categorieInput.value.trim(),
+        'Ajouté_par': user ? (user.name || user.email) : '',
+        'Acheté': 'Non'
+      });
 
       articleInput.value = '';
       quantiteInput.value = '';
       uniteInput.value = '';
       categorieInput.value = '';
-      chatInput.checked = false;
 
       await renderList(container);
     } catch (err) {
