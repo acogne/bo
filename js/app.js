@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   injectMenuIcons();
+  document.getElementById('courses-shortcut-btn').innerHTML = Icons.svg('courses');
   initFieldBlurOnOutsideTap();
 
   window.addEventListener('hashchange', renderRoute);

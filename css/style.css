@@ -198,6 +198,13 @@ body {
   cursor: pointer;
   color: var(--text);
   padding: 0;
+  text-decoration: none;
+}
+
+.icon-btn svg {
+  width: 20px;
+  height: 20px;
+  display: block;
 }
 
 #app-content {
