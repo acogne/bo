@@ -39,15 +39,18 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Sur mobile, taper dans un champ zoome légèrement l'écran (comportement
-// natif iOS). En tapant en dehors du champ, on force sa perte de focus
-// (ce qui referme le clavier) puis on force Safari à recalculer le zoom
-// de la page — sans quoi, en PWA/standalone, la page peut rester zoomée
-// même une fois le clavier fermé.
+// natif iOS). En tapant en dehors de tout champ, on force la perte de focus
+// (ce qui referme le clavier) puis on force Safari à recalculer le zoom de
+// la page — sans quoi, en PWA/standalone, la page peut rester zoomée même
+// une fois le clavier fermé. Passer directement d'un champ à un autre ne
+// doit rien déclencher ici : le navigateur gère déjà cette transition tout
+// seul, sans à-coup de zoom.
 function initFieldBlurOnOutsideTap() {
   document.addEventListener('pointerdown', (event) => {
     const active = document.activeElement;
     if (!active || !active.matches('input, textarea, select')) return;
     if (active.contains(event.target)) return;
+    if (event.target.closest && event.target.closest('input, textarea, select')) return;
     active.blur();
     resetIOSZoom();
   });
