@@ -37,7 +37,8 @@
           <option value="Épuisé">Épuisé</option>
         </select>
         <input type="text" id="stock-add-seuil" placeholder="Seuil d'alerte (ex. 2 paquets, optionnel)" />
-        <input type="date" id="stock-add-peremption" placeholder="Date de péremption (optionnel)" />
+        <label class="field-label" for="stock-add-peremption">Date de péremption (optionnel)</label>
+        <input type="date" id="stock-add-peremption" />
         <button type="submit" class="btn">Enregistrer</button>
       </form>
     `;
