@@ -17,6 +17,7 @@
       <section class="tab-header accent-enfant">
         <h2>Enfant</h2>
         <p class="week-info" id="enfant-garde-week-info">Chargement de la garde…</p>
+        <p class="week-info" id="enfant-garde-week-next"></p>
       </section>
 
       <section class="card">
@@ -118,16 +119,26 @@
 
   async function renderGardeWeekInfo(container) {
     const el = container.querySelector('#enfant-garde-week-info');
+    const nextEl = container.querySelector('#enfant-garde-week-next');
     try {
       const { rows } = await SheetsAPI.getRows(SHEET_GARDE_ROTATION);
-      const currentWeek = DateUtils.isoWeekNumber(new Date());
+      const now = new Date();
+      const currentWeek = DateUtils.isoWeekNumber(now);
+      const nextWeek = DateUtils.isoWeekNumber(new Date(now.getTime() + 7 * 86400000));
       const row = rows.find((r) => DateUtils.parseWeekNumber(r['Semaine']) === currentWeek);
+      const nextRow = rows.find((r) => DateUtils.parseWeekNumber(r['Semaine']) === nextWeek);
 
       if (!row) {
         el.textContent = 'Aucune rotation définie pour cette semaine.';
-        return;
+      } else {
+        el.innerHTML = `Cette semaine : <strong>${escapeHtml(row['Lieu_alternant'] || '?')}</strong>`;
       }
-      el.innerHTML = `Cette semaine : <strong>${escapeHtml(row['Lieu_alternant'] || '?')}</strong>`;
+
+      if (!nextRow) {
+        nextEl.textContent = 'Semaine prochaine : aucune rotation définie.';
+      } else {
+        nextEl.innerHTML = `Semaine prochaine : <strong>${escapeHtml(nextRow['Lieu_alternant'] || '?')}</strong>`;
+      }
     } catch (err) {
       console.error(err);
       el.textContent = 'Impossible de charger la rotation.';
