@@ -41,6 +41,16 @@ const TaskReset = (() => {
     return Math.floor((now - last) / (7 * 24 * 60 * 60 * 1000));
   }
 
+  function daysSince(task, now = new Date()) {
+    const last = DateUtils.parseDate(task['Dernière_fois']);
+    if (!last) return null;
+    const lastDay = new Date(last);
+    lastDay.setHours(0, 0, 0, 0);
+    const today = new Date(now);
+    today.setHours(0, 0, 0, 0);
+    return Math.round((today - lastDay) / (24 * 60 * 60 * 1000));
+  }
+
   function ancienneteLabel(task, now = new Date()) {
     const weeks = weeksSince(task, now);
     if (weeks === null) return 'jamais fait';
@@ -49,5 +59,5 @@ const TaskReset = (() => {
     return `il y a ${weeks} semaines`;
   }
 
-  return { isVisible, markDoneFields, ancienneteLabel };
+  return { isVisible, markDoneFields, ancienneteLabel, daysSince };
 })();

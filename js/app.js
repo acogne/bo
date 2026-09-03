@@ -219,6 +219,10 @@ async function renderDashboard(container) {
       <h3>Tâches de la semaine</h3>
       <div id="dash-week-tasks"><p class="text-muted">Chargement…</p></div>
     </section>
+    <section class="card dash-card">
+      <h3>Tâches occasionnelles</h3>
+      <div id="dash-occasionnel-tasks"><p class="text-muted">Chargement…</p></div>
+    </section>
     <section class="card dash-card" id="dash-compteurs-card" hidden>
       <h3>Compteurs à relever</h3>
       <div id="dash-compteurs-list"><p class="text-muted">Chargement…</p></div>
@@ -239,6 +243,7 @@ async function renderDashboard(container) {
   renderDashboardWeekEvents();
   renderDashboardWeekends();
   renderDashboardTodayTasks();
+  renderDashboardOccasionnelTasks();
   renderDashboardCompteurs();
   renderDashboardVehicule();
 }
@@ -610,6 +615,70 @@ async function renderDashboardTodayTasks() {
     console.error(err);
     dailyEl.innerHTML = '<p class="text-muted">Impossible de charger les tâches.</p>';
     weeklyEl.innerHTML = '<p class="text-muted">Impossible de charger les tâches.</p>';
+  }
+}
+
+function daysSinceLabel(task, now = new Date()) {
+  const days = TaskReset.daysSince(task, now);
+  return days === null ? 'Jamais fait' : `${days}j`;
+}
+
+async function renderDashboardOccasionnelTasks() {
+  const el = document.getElementById('dash-occasionnel-tasks');
+  try {
+    const { rows } = await SheetsAPI.getRows(CONFIG.SHEETS.MENAGE_TACHES);
+    const tasks = rows.filter((t) => (t['Fréquence'] || '').trim().toLowerCase() === 'occasionnel');
+
+    if (tasks.length === 0) {
+      el.innerHTML = '<p class="text-muted">Aucune tâche occasionnelle.</p>';
+      return;
+    }
+
+    el.innerHTML = '';
+    const chipsWrap = document.createElement('div');
+    chipsWrap.className = 'task-chips';
+    tasks.forEach((task) => chipsWrap.appendChild(renderOccasionnelChip(task)));
+    el.appendChild(chipsWrap);
+  } catch (err) {
+    console.error(err);
+    el.innerHTML = '<p class="text-muted">Impossible de charger les tâches occasionnelles.</p>';
+  }
+}
+
+function renderOccasionnelChip(task) {
+  const chip = document.createElement('button');
+  chip.type = 'button';
+  chip.className = 'task-chip accent-menage';
+  chip.innerHTML = `
+    <span class="task-chip-check" aria-hidden="true"></span>
+    <span class="task-chip-body">
+      <span class="task-chip-name"><span class="task-chip-icon">${Icons.svg('menage')}</span>${escapeHtml(task['Nom'] || '')}</span>
+      <span class="task-chip-meta">${escapeHtml(daysSinceLabel(task))}</span>
+    </span>
+  `;
+  chip.addEventListener('click', () => onOccasionnelTaskDone(chip, task));
+  return chip;
+}
+
+// Contrairement aux tâches quotidien/hebdo, une tâche occasionnelle ne
+// disparaît jamais de la liste : on remet juste son compteur de jours à 0.
+async function onOccasionnelTaskDone(chip, task) {
+  if (chip.classList.contains('task-chip--busy')) return;
+  chip.classList.add('task-chip--busy', 'task-chip--done');
+  Confetti.burst();
+
+  try {
+    const updated = { ...task, ...TaskReset.markDoneFields() };
+    await SheetsAPI.updateRow(CONFIG.SHEETS.MENAGE_TACHES, task._rowIndex, updated);
+    Object.assign(task, updated);
+
+    chip.querySelector('.task-chip-meta').textContent = daysSinceLabel(task);
+    chip.classList.remove('task-chip--busy');
+    setTimeout(() => chip.classList.remove('task-chip--done'), 700);
+  } catch (err) {
+    console.error(err);
+    chip.classList.remove('task-chip--busy', 'task-chip--done');
+    alert("Impossible d'enregistrer cette tâche, réessaie.");
   }
 }
 
