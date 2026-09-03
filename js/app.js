@@ -343,6 +343,15 @@ function parseCalendarDate(start) {
   return new Date(y, m - 1, d);
 }
 
+// Chevauchement [start, end) de l'événement avec [rangeStart, rangeEnd) —
+// nécessaire pour les événements "journée entière" multi-jours (ex. vacances
+// du jeudi au lundi), dont la date de début peut précéder le samedi.
+function eventOverlapsRange(ev, rangeStart, rangeEnd) {
+  const start = parseCalendarDate(ev.start || {});
+  const end = ev.end ? parseCalendarDate(ev.end) : start;
+  return start < rangeEnd && end > rangeStart;
+}
+
 function formatEventParts(event) {
   const start = event.start || {};
   const date = parseCalendarDate(start);
@@ -433,10 +442,13 @@ async function renderDashboardWeekends() {
 
     el.innerHTML = '';
     weekends.forEach((weekend) => {
-      const weekendEvents = events.filter((ev) => {
-        const date = parseCalendarDate(ev.start || {});
-        return DateUtils.isSameDay(date, weekend.saturday) || DateUtils.isSameDay(date, weekend.sunday);
-      });
+      const rangeStart = new Date(weekend.saturday);
+      rangeStart.setHours(0, 0, 0, 0);
+      const rangeEnd = new Date(weekend.sunday);
+      rangeEnd.setHours(0, 0, 0, 0);
+      rangeEnd.setDate(rangeEnd.getDate() + 1);
+
+      const weekendEvents = events.filter((ev) => eventOverlapsRange(ev, rangeStart, rangeEnd));
 
       const group = document.createElement('div');
       group.className = 'weekend-group';
