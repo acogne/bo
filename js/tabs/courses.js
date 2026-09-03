@@ -110,8 +110,14 @@
         byCategorie.get(cat).push(entry);
       });
 
+      const orderedGroups = Array.from(byCategorie.entries()).sort((a, b) => {
+        const ia = CATEGORIES.indexOf(a[0]);
+        const ib = CATEGORIES.indexOf(b[0]);
+        return (ia === -1 ? CATEGORIES.length : ia) - (ib === -1 ? CATEGORIES.length : ib);
+      });
+
       listEl.innerHTML = '';
-      byCategorie.forEach((items, categorie) => {
+      orderedGroups.forEach(([categorie, items]) => {
         const group = document.createElement('div');
         group.className = 'task-group';
         group.innerHTML = `<h3 class="task-group-title">${escapeHtml(categorie)}</h3>`;
