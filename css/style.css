@@ -348,6 +348,12 @@ body {
 
 /* ---------- Groupes de tâches + chips ---------- */
 
+.task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .task-group {
   background: var(--card-bg);
   border-radius: var(--border-radius);
