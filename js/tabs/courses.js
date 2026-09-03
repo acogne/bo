@@ -9,6 +9,13 @@
   const SHEET = CONFIG.SHEETS.COURSES;
   const SHEET_CHAT = CONFIG.SHEETS.CHAT_ACHATS;
 
+  // Catégories définies dans la colonne Catégorie du sheet Courses.
+  const CATEGORIES = ['Entretien', 'Enfant', 'Conserverie', 'Frais', 'Viande/Poisson', 'Boulangerie', 'Fruits/Légumes', 'Autre'];
+
+  function categoryOptions(selected) {
+    return CATEGORIES.map((cat) => `<option value="${escapeAttr(cat)}"${cat === selected ? ' selected' : ''}>${escapeHtml(cat)}</option>`).join('');
+  }
+
   // Chaque entrée de la liste fusionnée est { raw, sheet } : `raw` est la ligne
   // brute telle que lue depuis son sheet d'origine (avec _rowIndex), `sheet`
   // vaut 'courses' ou 'chat' et pilote quel champ représente "acheté" et quel
@@ -61,7 +68,10 @@
         <input type="text" id="courses-add-article" placeholder="Article" required />
         <input type="text" id="courses-add-quantite" placeholder="Quantité (ex. 2)" />
         <input type="text" id="courses-add-unite" placeholder="Unité (ex. kg, L, pièce)" />
-        <input type="text" id="courses-add-categorie" placeholder="Catégorie (ex. Frais)" />
+        <select id="courses-add-categorie">
+          <option value="">Catégorie…</option>
+          ${categoryOptions()}
+        </select>
         <button type="submit" class="btn">Ajouter</button>
       </form>
     `;
@@ -179,7 +189,10 @@
         ` : `
           <input type="text" class="task-chip-edit-quantite" placeholder="Quantité" value="${escapeAttr(entry.raw['Quantité'] || '')}" />
           <input type="text" class="task-chip-edit-unite" placeholder="Unité" value="${escapeAttr(entry.raw['Unité'] || '')}" />
-          <input type="text" class="task-chip-edit-categorie" placeholder="Catégorie" value="${escapeAttr(entry.raw['Catégorie'] || '')}" />
+          <select class="task-chip-edit-categorie">
+            <option value="">Catégorie…</option>
+            ${categoryOptions(entry.raw['Catégorie'] || '')}
+          </select>
         `}
         <div class="task-chip-edit-actions">
           <button type="submit" class="btn">Enregistrer</button>
