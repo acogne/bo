@@ -73,5 +73,29 @@ const CalendarAPI = (() => {
     return data.items || [];
   }
 
-  return { createEvent, listUpcomingEvents };
+  // Événements dont la période [start, end) chevauche [timeMin, timeMax) —
+  // utilisé pour l'agenda du jour sur la homepage (le filtre timeMin/timeMax
+  // de l'API Google porte respectivement sur la fin et le début de
+  // l'événement, ce qui couvre déjà les événements journée entière en cours).
+  async function listEventsInRange({ timeMin, timeMax, maxResults = 50 }) {
+    const calendarId = CONFIG.CALENDAR_ID;
+    const params = new URLSearchParams({
+      timeMin: timeMin.toISOString(),
+      timeMax: timeMax.toISOString(),
+      singleEvents: 'true',
+      orderBy: 'startTime',
+      maxResults: String(maxResults)
+    });
+    const url = `${BASE_URL}/${encodeURIComponent(calendarId)}/events?${params.toString()}`;
+
+    const res = await fetch(url, { headers: authHeaders() });
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new Error(`Erreur API Calendar (${res.status}) : ${body}`);
+    }
+    const data = await res.json();
+    return data.items || [];
+  }
+
+  return { createEvent, listUpcomingEvents, listEventsInRange };
 })();

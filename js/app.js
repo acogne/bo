@@ -184,6 +184,12 @@ function renderRoute() {
 async function renderDashboard(container) {
   container.innerHTML = `
     <p id="dash-quote" class="dash-quote" hidden></p>
+    <section class="card dash-card">
+      <h3>Aujourd'hui</h3>
+      <div id="dash-today-agenda"><p class="text-muted">Chargement…</p></div>
+      <div id="dash-today-garde"></div>
+      <div id="dash-today-repas"></div>
+    </section>
     <details class="card dash-card">
       <summary class="dash-card-summary"><h3>Cette semaine</h3></summary>
       <div class="dash-card-body">
@@ -226,6 +232,9 @@ async function renderDashboard(container) {
   initDashAddEventForm();
 
   renderDashboardQuote();
+  renderDashboardTodayAgenda();
+  renderDashboardTodayGarde();
+  renderDashboardTodayRepas();
   renderDashboardWeekInfo();
   renderDashboardWeekEvents();
   renderDashboardWeekends();
@@ -321,6 +330,101 @@ function buildAddEventIcsUrl({ titre, lieu, start, end }) {
   ].filter(Boolean).join('\r\n');
 
   return `data:text/calendar;charset=utf-8,${encodeURIComponent(ics)}`;
+}
+
+const FR_DAYS = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+
+function startOfDay(date) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+async function renderDashboardTodayAgenda() {
+  const el = document.getElementById('dash-today-agenda');
+  try {
+    const start = startOfDay(new Date());
+    const end = new Date(start);
+    end.setDate(end.getDate() + 1);
+
+    const events = await CalendarAPI.listEventsInRange({ timeMin: start, timeMax: end });
+
+    if (events.length === 0) {
+      el.innerHTML = '<p class="text-muted">Rien de prévu aujourd\'hui.</p>';
+      return;
+    }
+    el.innerHTML = '<div class="event-rows"></div>';
+    const wrap = el.querySelector('.event-rows');
+    events.forEach((ev) => wrap.appendChild(buildEventRow(ev)));
+  } catch (err) {
+    console.error(err);
+    el.innerHTML = '<p class="text-muted">Impossible de charger l\'agenda du jour.</p>';
+  }
+}
+
+// Combine le planning type (Enfant_Garde_Hebdo, par jour de semaine) avec la
+// rotation (Enfant_Garde_Rotation, par numéro de semaine) : quand une case du
+// planning type vaut "Alternant", on la remplace par la valeur Lieu_alternant
+// de la semaine en cours.
+async function renderDashboardTodayGarde() {
+  const el = document.getElementById('dash-today-garde');
+  try {
+    const now = new Date();
+    const todayName = FR_DAYS[now.getDay()];
+
+    const [hebdoRes, rotationRes] = await Promise.all([
+      SheetsAPI.getRows(CONFIG.SHEETS.ENFANT_GARDE_HEBDO),
+      SheetsAPI.getRows(CONFIG.SHEETS.ENFANT_GARDE_ROTATION)
+    ]);
+
+    const hebdoRow = hebdoRes.rows.find((r) => (r['Jour'] || '').trim() === todayName);
+    if (!hebdoRow) {
+      el.innerHTML = '';
+      return;
+    }
+
+    const currentWeek = DateUtils.isoWeekNumber(now);
+    const rotationRow = rotationRes.rows.find((r) => DateUtils.parseWeekNumber(r['Semaine']) === currentWeek);
+    const alternantValue = (rotationRow && rotationRow['Lieu_alternant']) || '';
+
+    const resolve = (value) => {
+      const v = (value || '').trim();
+      return /^alternant$/i.test(v) ? (alternantValue || v) : v;
+    };
+
+    const parts = [resolve(hebdoRow['Matin']), resolve(hebdoRow['Après-midi_type'])].filter(Boolean);
+
+    el.innerHTML = parts.length
+      ? `<p class="text-muted">Garde : <strong>${escapeHtml(parts.join(' · '))}</strong></p>`
+      : '';
+  } catch (err) {
+    console.error(err);
+    el.innerHTML = '<p class="text-muted">Impossible de charger la garde du jour.</p>';
+  }
+}
+
+async function renderDashboardTodayRepas() {
+  const el = document.getElementById('dash-today-repas');
+  try {
+    const REPAS_ORDER = ['Petit-déjeuner', 'Midi', 'Soir'];
+    const todayName = FR_DAYS[new Date().getDay()];
+
+    const { rows } = await SheetsAPI.getRows(CONFIG.SHEETS.REPAS);
+    const repasOrderIndex = (value) => {
+      const i = REPAS_ORDER.indexOf((value || '').trim());
+      return i === -1 ? REPAS_ORDER.length : i;
+    };
+    const todayRepas = rows
+      .filter((r) => (r['Jour'] || '').trim() === todayName && (r['Plat'] || '').trim())
+      .sort((a, b) => repasOrderIndex(a['Repas']) - repasOrderIndex(b['Repas']));
+
+    el.innerHTML = todayRepas
+      .map((r) => `<p class="text-muted">${escapeHtml(r['Repas'] || '')} : <strong>${escapeHtml(r['Plat'] || '')}</strong></p>`)
+      .join('');
+  } catch (err) {
+    console.error(err);
+    el.innerHTML = '<p class="text-muted">Impossible de charger les menus du jour.</p>';
+  }
 }
 
 async function renderDashboardWeekInfo() {
