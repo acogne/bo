@@ -346,6 +346,42 @@ body {
   font-size: 15px;
 }
 
+.dash-card-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  list-style: none;
+}
+
+.dash-card-summary::-webkit-details-marker {
+  display: none;
+}
+
+.dash-card-summary h3 {
+  margin: 0;
+}
+
+.dash-card-summary::after {
+  content: '';
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  margin-left: 12px;
+  border-right: 2px solid var(--text-muted);
+  border-bottom: 2px solid var(--text-muted);
+  transform: rotate(45deg);
+  transition: transform 0.2s;
+}
+
+details[open] > .dash-card-summary::after {
+  transform: rotate(-135deg);
+}
+
+.dash-card-body {
+  margin-top: 8px;
+}
+
 /* ---------- Groupes de tâches + chips ---------- */
 
 .task-list {

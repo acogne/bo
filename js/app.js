@@ -184,23 +184,27 @@ function renderRoute() {
 async function renderDashboard(container) {
   container.innerHTML = `
     <p id="dash-quote" class="dash-quote" hidden></p>
-    <section class="card dash-card">
-      <h3>Cette semaine</h3>
-      <p id="dash-week-info" class="text-muted">Chargement…</p>
-      <div id="dash-week-events"><p class="text-muted">Chargement des événements…</p></div>
-      <button type="button" id="dash-add-event-toggle" class="btn btn-secondary">+ Ajouter un événement</button>
-      <form id="dash-add-event-form" class="quick-add-form" hidden>
-        <input type="text" id="dash-event-titre" placeholder="Titre" required />
-        <input type="date" id="dash-event-date" required />
-        <input type="time" id="dash-event-heure" required />
-        <input type="text" id="dash-event-lieu" placeholder="Lieu (optionnel)" />
-        <button type="submit" class="btn">Ajouter au calendrier</button>
-      </form>
-    </section>
-    <section class="card dash-card">
-      <h3>Prochains week-ends</h3>
-      <div id="dash-weekends"><p class="text-muted">Chargement…</p></div>
-    </section>
+    <details class="card dash-card">
+      <summary class="dash-card-summary"><h3>Cette semaine</h3></summary>
+      <div class="dash-card-body">
+        <p id="dash-week-info" class="text-muted">Chargement…</p>
+        <div id="dash-week-events"><p class="text-muted">Chargement des événements…</p></div>
+        <button type="button" id="dash-add-event-toggle" class="btn btn-secondary">+ Ajouter un événement</button>
+        <form id="dash-add-event-form" class="quick-add-form" hidden>
+          <input type="text" id="dash-event-titre" placeholder="Titre" required />
+          <input type="date" id="dash-event-date" required />
+          <input type="time" id="dash-event-heure" required />
+          <input type="text" id="dash-event-lieu" placeholder="Lieu (optionnel)" />
+          <button type="submit" class="btn">Ajouter au calendrier</button>
+        </form>
+      </div>
+    </details>
+    <details class="card dash-card">
+      <summary class="dash-card-summary"><h3>Prochains week-ends</h3></summary>
+      <div class="dash-card-body">
+        <div id="dash-weekends"><p class="text-muted">Chargement…</p></div>
+      </div>
+    </details>
     <section class="card dash-card">
       <h3>Tâches du jour</h3>
       <div id="dash-today-tasks"><p class="text-muted">Chargement…</p></div>
