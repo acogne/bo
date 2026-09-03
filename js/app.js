@@ -392,10 +392,15 @@ async function renderDashboardTodayGarde() {
       return /^alternant$/i.test(v) ? (alternantValue || v) : v;
     };
 
-    const parts = [resolve(hebdoRow['Matin']), resolve(hebdoRow['Après-midi_type'])].filter(Boolean);
+    const matin = resolve(hebdoRow['Matin']);
+    const apresMidi = resolve(hebdoRow['Après-midi_type']);
+    const parts = [
+      matin ? `Matin : <strong>${escapeHtml(matin)}</strong>` : null,
+      apresMidi ? `Après-midi : <strong>${escapeHtml(apresMidi)}</strong>` : null
+    ].filter(Boolean);
 
     el.innerHTML = parts.length
-      ? `<p class="text-muted">Garde : <strong>${escapeHtml(parts.join(' · '))}</strong></p>`
+      ? `<p class="text-muted">Garde — ${parts.join(' · ')}</p>`
       : '';
   } catch (err) {
     console.error(err);
