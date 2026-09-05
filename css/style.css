@@ -405,6 +405,24 @@ details[open] > .dash-card-summary::after {
   color: var(--text-muted);
 }
 
+/* ---------- Sections par semaine (Repas : "Cette semaine" / "Semaine +1") ---------- */
+
+.task-week-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.task-week-section + .task-week-section {
+  margin-top: 8px;
+}
+
+.task-week-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+}
+
 .task-chips {
   display: flex;
   flex-direction: column;

@@ -418,14 +418,21 @@ async function renderDashboardTodayRepas() {
   try {
     const REPAS_ORDER = ['Petit-déjeuner', 'Midi', 'Soir'];
     const todayName = FR_DAYS[new Date().getDay()];
+    const currentWeek = DateUtils.isoWeekNumber(new Date());
 
     const { rows } = await SheetsAPI.getRows(CONFIG.SHEETS.REPAS);
     const repasOrderIndex = (value) => {
       const i = REPAS_ORDER.indexOf((value || '').trim());
       return i === -1 ? REPAS_ORDER.length : i;
     };
+    // Une ligne sans Semaine (donnée d'avant cette colonne) est traitée comme
+    // "cette semaine" — voir repas.js pour la même règle côté planning.
     const todayRepas = rows
-      .filter((r) => (r['Jour'] || '').trim() === todayName && (r['Plat'] || '').trim())
+      .filter((r) => {
+        if ((r['Jour'] || '').trim() !== todayName || !(r['Plat'] || '').trim()) return false;
+        const weekNum = DateUtils.parseWeekNumber(r['Semaine']);
+        return weekNum === null || weekNum === currentWeek;
+      })
       .sort((a, b) => repasOrderIndex(a['Repas']) - repasOrderIndex(b['Repas']));
 
     el.innerHTML = todayRepas
