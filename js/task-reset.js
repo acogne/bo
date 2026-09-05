@@ -35,12 +35,6 @@ const TaskReset = (() => {
     };
   }
 
-  function weeksSince(task, now = new Date()) {
-    const last = DateUtils.parseDate(task['Dernière_fois']);
-    if (!last) return null;
-    return Math.floor((now - last) / (7 * 24 * 60 * 60 * 1000));
-  }
-
   function daysSince(task, now = new Date()) {
     const last = DateUtils.parseDate(task['Dernière_fois']);
     if (!last) return null;
@@ -51,13 +45,28 @@ const TaskReset = (() => {
     return Math.round((today - lastDay) / (24 * 60 * 60 * 1000));
   }
 
-  function ancienneteLabel(task, now = new Date()) {
-    const weeks = weeksSince(task, now);
-    if (weeks === null) return 'jamais fait';
-    if (weeks <= 0) return 'cette semaine';
-    if (weeks === 1) return 'il y a 1 semaine';
-    return `il y a ${weeks} semaines`;
+  function daysSinceLabel(task, now = new Date()) {
+    const days = daysSince(task, now);
+    return days === null ? 'Jamais fait' : `${days}j`;
   }
 
-  return { isVisible, markDoneFields, ancienneteLabel, daysSince };
+  // Seuils d'alerte propres à chaque tâche occasionnelle (colonnes
+  // Seuil_orange / Seuil_rouge du Sheet, en nombre de jours depuis
+  // Dernière_fois). Une tâche jamais faite est traitée comme "infiniment en
+  // retard" : elle atteint n'importe quel seuil défini. Un seuil vide/non
+  // numérique est simplement ignoré (pas d'alerte à ce palier pour cette tâche).
+  function occasionnelSeverity(task, now = new Date()) {
+    const days = daysSince(task, now);
+    const effectiveDays = days === null ? Infinity : days;
+
+    const redThreshold = parseInt(task['Seuil_rouge'], 10);
+    if (!isNaN(redThreshold) && effectiveDays >= redThreshold) return 'red';
+
+    const orangeThreshold = parseInt(task['Seuil_orange'], 10);
+    if (!isNaN(orangeThreshold) && effectiveDays >= orangeThreshold) return 'orange';
+
+    return null;
+  }
+
+  return { isVisible, markDoneFields, daysSince, daysSinceLabel, occasionnelSeverity };
 })();

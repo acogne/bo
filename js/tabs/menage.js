@@ -99,26 +99,39 @@
     }
   }
 
+  // Pour une tâche occasionnelle, le décompte de jours prend la couleur
+  // orange/rouge dès qu'il atteint le seuil propre à cette tâche (colonnes
+  // Seuil_orange/Seuil_rouge du Sheet) ; les autres fréquences n'ont pas de
+  // décompte à colorer.
+  function setMeta(el, task, otherParts) {
+    const freq = (task['Fréquence'] || '').trim().toLowerCase();
+    el.classList.remove('task-chip-meta--orange', 'task-chip-meta--red');
+
+    const parts = [];
+    if (freq === 'occasionnel') {
+      parts.push(TaskReset.daysSinceLabel(task));
+      const severity = TaskReset.occasionnelSeverity(task);
+      if (severity) el.classList.add(`task-chip-meta--${severity}`);
+    }
+    parts.push(...otherParts);
+    el.textContent = parts.join(' · ');
+  }
+
   function renderChip(task) {
     const chip = document.createElement('button');
     chip.type = 'button';
     chip.className = 'task-chip accent-menage';
     chip.dataset.rowIndex = task._rowIndex;
 
-    const freq = (task['Fréquence'] || '').trim().toLowerCase();
-    const metaParts = [];
-    if (freq === 'occasionnel') {
-      metaParts.push(TaskReset.ancienneteLabel(task));
-    }
-    if (task['Assigné_à']) metaParts.push(task['Assigné_à']);
-
     chip.innerHTML = `
       <span class="task-chip-check" aria-hidden="true"></span>
       <span class="task-chip-body">
         <span class="task-chip-name"><span class="task-chip-icon">${Icons.svg('menage')}</span>${escapeHtml(task['Nom'] || '')}</span>
-        <span class="task-chip-meta">${escapeHtml(metaParts.join(' · '))}</span>
+        <span class="task-chip-meta"></span>
       </span>
     `;
+
+    setMeta(chip.querySelector('.task-chip-meta'), task, task['Assigné_à'] ? [task['Assigné_à']] : []);
 
     chip.addEventListener('click', () => onCheckTask(chip, task));
     return chip;
@@ -136,12 +149,9 @@
       await SheetsAPI.updateRow(SHEET, task._rowIndex, updated);
 
       if (freq === 'occasionnel') {
-        // Reste dans la liste : on rafraîchit juste le libellé d'ancienneté.
+        // Reste dans la liste : on rafraîchit juste le décompte de jours.
         Object.assign(task, updated);
-        const meta = chip.querySelector('.task-chip-meta');
-        const parts = ['cette semaine'];
-        if (task['Assigné_à']) parts.push(task['Assigné_à']);
-        meta.textContent = parts.join(' · ');
+        setMeta(chip.querySelector('.task-chip-meta'), task, task['Assigné_à'] ? [task['Assigné_à']] : []);
         chip.classList.remove('task-chip--busy');
         setTimeout(() => chip.classList.remove('task-chip--done'), 700);
       } else {

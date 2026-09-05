@@ -529,6 +529,18 @@ details[open] > .dash-card-summary::after {
   font-weight: 500;
 }
 
+/* Alerte d'ancienneté sur une tâche occasionnelle, une fois son seuil
+   Seuil_orange/Seuil_rouge dépassé (voir TaskReset.occasionnelSeverity). */
+.task-chip-meta--orange {
+  color: var(--accent-budget);
+  font-weight: 700;
+}
+
+.task-chip-meta--red {
+  color: var(--accent-admin);
+  font-weight: 700;
+}
+
 /* Confirmation brève : la coche se remplit avec la couleur d'accent du domaine */
 .task-chip--done .task-chip-check {
   border-color: var(--chip-accent, #22c55e);

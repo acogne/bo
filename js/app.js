@@ -677,9 +677,13 @@ async function renderDashboardTodayTasks() {
   }
 }
 
-function daysSinceLabel(task, now = new Date()) {
-  const days = TaskReset.daysSince(task, now);
-  return days === null ? 'Jamais fait' : `${days}j`;
+// Applique le texte + la couleur d'alerte (orange/rouge selon les seuils
+// Seuil_orange/Seuil_rouge propres à la tâche) sur le badge de décompte.
+function setOccasionnelMeta(el, task) {
+  el.textContent = TaskReset.daysSinceLabel(task);
+  el.classList.remove('task-chip-meta--orange', 'task-chip-meta--red');
+  const severity = TaskReset.occasionnelSeverity(task);
+  if (severity) el.classList.add(`task-chip-meta--${severity}`);
 }
 
 async function renderDashboardOccasionnelTasks() {
@@ -712,9 +716,10 @@ function renderOccasionnelChip(task) {
     <span class="task-chip-check" aria-hidden="true"></span>
     <span class="task-chip-body">
       <span class="task-chip-name"><span class="task-chip-icon">${Icons.svg('menage')}</span>${escapeHtml(task['Nom'] || '')}</span>
-      <span class="task-chip-meta">${escapeHtml(daysSinceLabel(task))}</span>
+      <span class="task-chip-meta"></span>
     </span>
   `;
+  setOccasionnelMeta(chip.querySelector('.task-chip-meta'), task);
   chip.addEventListener('click', () => onOccasionnelTaskDone(chip, task));
   return chip;
 }
@@ -731,7 +736,7 @@ async function onOccasionnelTaskDone(chip, task) {
     await SheetsAPI.updateRow(CONFIG.SHEETS.MENAGE_TACHES, task._rowIndex, updated);
     Object.assign(task, updated);
 
-    chip.querySelector('.task-chip-meta').textContent = daysSinceLabel(task);
+    setOccasionnelMeta(chip.querySelector('.task-chip-meta'), task);
     chip.classList.remove('task-chip--busy');
     setTimeout(() => chip.classList.remove('task-chip--done'), 700);
   } catch (err) {
