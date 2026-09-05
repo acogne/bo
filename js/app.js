@@ -498,6 +498,61 @@ function buildEventRow(ev) {
   return row;
 }
 
+// Ligne d'événement pour un groupe déjà sous-titré par jour (voir
+// renderEventDayGroups) : plus besoin du badge jour/date sur chaque ligne
+// puisqu'il est déjà donné une fois par le sous-titre du groupe.
+function buildEventRowForGroup(ev) {
+  const { timeLabel } = formatEventParts(ev);
+  const row = document.createElement('div');
+  row.className = 'event-row event-row--grouped';
+  row.innerHTML = `
+    <span class="event-row-body">
+      <span class="event-row-title">${escapeHtml(ev.summary || '(Sans titre)')}</span>
+      <span class="event-row-time">${escapeHtml(timeLabel)}</span>
+    </span>
+  `;
+  return row;
+}
+
+function dayKey(date) {
+  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+}
+
+// Regroupe une liste d'événements par jour de début (ordre chronologique),
+// pour éviter d'afficher plusieurs lignes portant la même date.
+function groupEventsByDay(events) {
+  const map = new Map();
+  events.forEach((ev) => {
+    const date = parseCalendarDate(ev.start || {});
+    const key = dayKey(date);
+    if (!map.has(key)) map.set(key, { date, events: [] });
+    map.get(key).events.push(ev);
+  });
+  return [...map.values()].sort((a, b) => a.date - b.date);
+}
+
+function formatDayGroupLabel(date) {
+  const label = date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'short' });
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+// Affiche `events` dans `container`, regroupés sous un sous-titre par jour.
+function renderEventDayGroups(container, events) {
+  container.innerHTML = '';
+  groupEventsByDay(events).forEach(({ date, events: dayEvents }) => {
+    const block = document.createElement('div');
+    block.className = 'day-group';
+    block.innerHTML = `<h5 class="day-group-title">${escapeHtml(formatDayGroupLabel(date))}</h5>`;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'event-rows';
+    dayEvents.forEach((ev) => wrap.appendChild(buildEventRowForGroup(ev)));
+    block.appendChild(wrap);
+
+    container.appendChild(block);
+  });
+}
+
 async function renderDashboardWeekEvents() {
   const el = document.getElementById('dash-week-events');
   try {
@@ -508,9 +563,7 @@ async function renderDashboardWeekEvents() {
       return;
     }
 
-    el.innerHTML = '<div class="event-rows"></div>';
-    const wrap = el.querySelector('.event-rows');
-    events.forEach((ev) => wrap.appendChild(buildEventRow(ev)));
+    renderEventDayGroups(el, events);
   } catch (err) {
     console.error(err);
     el.innerHTML = '<p class="text-muted">Impossible de charger les événements de l\'agenda.</p>';
@@ -575,10 +628,9 @@ async function renderDashboardWeekends() {
       if (weekendEvents.length === 0) {
         group.innerHTML += '<p class="text-muted">Rien de prévu.</p>';
       } else {
-        const wrap = document.createElement('div');
-        wrap.className = 'event-rows';
-        weekendEvents.forEach((ev) => wrap.appendChild(buildEventRow(ev)));
-        group.appendChild(wrap);
+        const daysWrap = document.createElement('div');
+        renderEventDayGroups(daysWrap, weekendEvents);
+        group.appendChild(daysWrap);
       }
 
       el.appendChild(group);

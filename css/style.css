@@ -628,6 +628,28 @@ details[open] > .dash-card-summary::after {
   font-weight: 500;
 }
 
+/* ---------- Groupes par jour (sous-titre de date qui regroupe les
+   événements d'un même jour, dans "Cette semaine" et "Prochains
+   week-ends") ---------- */
+
+.day-group + .day-group {
+  margin-top: 12px;
+}
+
+.day-group-title {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+}
+
+.event-row--grouped {
+  padding: 8px 12px;
+  border-left: 3px solid var(--accent-menage);
+}
+
 /* ---------- Groupes par week-end (cartouche "Prochains week-ends") ---------- */
 
 .weekend-group + .weekend-group {
