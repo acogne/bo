@@ -728,12 +728,25 @@ async function renderDashboardTodayTasks() {
       (t['Statut'] || '').trim().toLowerCase() !== 'fait'
     );
 
+    // Une tâche occasionnelle en retard remonte aussi dans "Tâches de la
+    // semaine" (seuil orange) ou "Tâches du jour" (seuil rouge), en plus de
+    // rester listée dans sa propre carte "Tâches occasionnelles" — la cocher
+    // ici la marque faite comme n'importe quelle tâche Ménage, ce qui remet
+    // son compteur de jours à 0 et la fait ressortir des deux listes.
+    const occasionnelTasks = menageRes.rows.filter((t) => (t['Fréquence'] || '').trim().toLowerCase() === 'occasionnel');
+    const orangeOccasionnel = occasionnelTasks.filter((t) => TaskReset.occasionnelSeverity(t, now) === 'orange');
+    const redOccasionnel = occasionnelTasks.filter((t) => TaskReset.occasionnelSeverity(t, now) === 'red');
+
     const dailyItems = [
       ...dailyTasks.map((t) => ({ type: 'menage', task: t, label: t['Nom'] || '' })),
       ...ponctuelTasks.map((t) => ({ type: 'menage', task: t, label: t['Nom'] || '' })),
+      ...redOccasionnel.map((t) => ({ type: 'menage', task: t, label: t['Nom'] || '' })),
       ...dueMedicaments.map((m) => ({ type: 'medicament', task: m, label: ChatTab.formatMedicamentLabel(m) }))
     ];
-    const weeklyItems = weeklyTasks.map((t) => ({ type: 'menage', task: t, label: t['Nom'] || '' }));
+    const weeklyItems = [
+      ...weeklyTasks.map((t) => ({ type: 'menage', task: t, label: t['Nom'] || '' })),
+      ...orangeOccasionnel.map((t) => ({ type: 'menage', task: t, label: t['Nom'] || '' }))
+    ];
 
     renderDashboardTaskList(dailyEl, dailyItems, "Rien à faire aujourd'hui 🎉");
     renderDashboardTaskList(weeklyEl, weeklyItems, 'Rien à faire cette semaine 🎉');
@@ -806,6 +819,11 @@ async function onOccasionnelTaskDone(chip, task) {
     setOccasionnelMeta(chip.querySelector('.task-chip-meta'), task);
     chip.classList.remove('task-chip--busy');
     setTimeout(() => chip.classList.remove('task-chip--done'), 700);
+
+    // Si cette tâche était remontée dans "Tâches du jour"/"de la semaine"
+    // (seuil orange/rouge atteint), la cocher ici doit aussi l'en faire
+    // disparaître immédiatement plutôt qu'attendre un rechargement complet.
+    renderDashboardTodayTasks();
   } catch (err) {
     console.error(err);
     chip.classList.remove('task-chip--busy', 'task-chip--done');
@@ -850,6 +868,13 @@ async function onDashboardTaskDone(chip, item, emptyText) {
     if (item.type === 'menage') {
       const updated = { ...item.task, ...TaskReset.markDoneFields() };
       await SheetsAPI.updateRow(CONFIG.SHEETS.MENAGE_TACHES, item.task._rowIndex, updated);
+      Object.assign(item.task, updated);
+
+      // Une tâche occasionnelle remontée ici par seuil orange/rouge doit
+      // aussi voir son badge se réinitialiser dans sa carte d'origine.
+      if ((item.task['Fréquence'] || '').trim().toLowerCase() === 'occasionnel') {
+        renderDashboardOccasionnelTasks();
+      }
     } else {
       await ChatTab.markMedicamentDone(item.task);
     }
