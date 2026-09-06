@@ -212,7 +212,14 @@ async function renderDashboard(container) {
       </div>
     </details>
     <section class="card dash-card">
-      <h3>Tâches du jour</h3>
+      <div class="dash-card-header">
+        <h3>Tâches du jour</h3>
+        <button type="button" id="dash-add-task-toggle" class="btn-add-icon" aria-label="Ajouter une tâche">+</button>
+      </div>
+      <form id="dash-add-task-form" class="quick-add-form" hidden>
+        <input type="text" id="dash-task-nom" placeholder="Nouvelle tâche" required />
+        <button type="submit" class="btn">Ajouter</button>
+      </form>
       <div id="dash-today-tasks"><p class="text-muted">Chargement…</p></div>
     </section>
     <section class="card dash-card">
@@ -234,6 +241,7 @@ async function renderDashboard(container) {
   `;
 
   initDashAddEventForm();
+  initDashAddTaskForm();
 
   renderDashboardQuote();
   renderDashboardTodayAgenda();
@@ -305,6 +313,60 @@ function initDashAddEventForm() {
 
     window.location.href = buildAddEventIcsUrl({ titre, lieu, start, end });
   });
+}
+
+// Tâche manuelle ponctuelle : stockée dans Ménage_Taches avec Fréquence
+// "ponctuel" (une valeur que ni le filtre Quotidien/Hebdo/Occasionnel de
+// l'onglet Ménage ni celui de la carte "Tâches occasionnelles" ne reconnaît,
+// donc elle n'apparaît que sur cette carte du dashboard). Cocher la tâche la
+// marque juste "Fait" (comme les autres tâches Ménage) au lieu de supprimer
+// la ligne — elle disparaît de la carte sans repartir de zéro si on rouvre le Sheet.
+function initDashAddTaskForm() {
+  const toggleBtn = document.getElementById('dash-add-task-toggle');
+  const form = document.getElementById('dash-add-task-form');
+  const nomInput = document.getElementById('dash-task-nom');
+
+  toggleBtn.addEventListener('click', () => {
+    form.hidden = !form.hidden;
+    if (!form.hidden) nomInput.focus();
+  });
+
+  form.addEventListener('submit', (event) => onAddDashboardTask(event, form, nomInput));
+}
+
+async function onAddDashboardTask(event, form, nomInput) {
+  event.preventDefault();
+  const nom = nomInput.value.trim();
+  if (!nom) return;
+
+  const submitBtn = form.querySelector('button[type="submit"]');
+  submitBtn.disabled = true;
+
+  try {
+    const { rows } = await SheetsAPI.getRows(CONFIG.SHEETS.MENAGE_TACHES);
+    const maxId = rows.reduce((max, r) => {
+      const id = parseInt(r['ID'], 10);
+      return isNaN(id) ? max : Math.max(max, id);
+    }, 0);
+
+    await SheetsAPI.appendRow(CONFIG.SHEETS.MENAGE_TACHES, {
+      'ID': maxId + 1,
+      'Nom': nom,
+      'Fréquence': 'ponctuel',
+      'Dernière_fois': '',
+      'Assigné_à': '',
+      'Statut': 'À faire'
+    });
+
+    nomInput.value = '';
+    form.hidden = true;
+    await renderDashboardTodayTasks();
+  } catch (err) {
+    console.error(err);
+    alert("Impossible d'ajouter cette tâche, réessaie.");
+  } finally {
+    submitBtn.disabled = false;
+  }
 }
 
 function buildAddEventIcsUrl({ titre, lieu, start, end }) {
@@ -661,9 +723,14 @@ async function renderDashboardTodayTasks() {
     const visibleTasks = menageRes.rows.filter((t) => TaskReset.isVisible(t, now));
     const dailyTasks = visibleTasks.filter((t) => (t['Fréquence'] || '').trim().toLowerCase() === 'quotidien');
     const weeklyTasks = visibleTasks.filter((t) => (t['Fréquence'] || '').trim().toLowerCase() === 'hebdo');
+    const ponctuelTasks = menageRes.rows.filter((t) =>
+      (t['Fréquence'] || '').trim().toLowerCase() === 'ponctuel' &&
+      (t['Statut'] || '').trim().toLowerCase() !== 'fait'
+    );
 
     const dailyItems = [
       ...dailyTasks.map((t) => ({ type: 'menage', task: t, label: t['Nom'] || '' })),
+      ...ponctuelTasks.map((t) => ({ type: 'menage', task: t, label: t['Nom'] || '' })),
       ...dueMedicaments.map((m) => ({ type: 'medicament', task: m, label: ChatTab.formatMedicamentLabel(m) }))
     ];
     const weeklyItems = weeklyTasks.map((t) => ({ type: 'menage', task: t, label: t['Nom'] || '' }));

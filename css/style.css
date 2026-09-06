@@ -382,6 +382,38 @@ details[open] > .dash-card-summary::after {
   margin-top: 8px;
 }
 
+.dash-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.dash-card-header h3 {
+  margin: 0;
+}
+
+.btn-add-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: var(--accent-menage);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+}
+
+#dash-add-task-form {
+  margin-bottom: 12px;
+}
+
 /* ---------- Groupes de tâches + chips ---------- */
 
 .task-list {

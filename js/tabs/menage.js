@@ -55,7 +55,11 @@
     try {
       const { rows } = await SheetsAPI.getRows(SHEET);
       const now = new Date();
-      const visibleTasks = rows.filter((t) => TaskReset.isVisible(t, now));
+      // Les tâches "ponctuel" sont des ajouts manuels depuis la carte "Tâches
+      // du jour" du dashboard : elles ne doivent apparaître que là, pas ici.
+      const visibleTasks = rows
+        .filter((t) => (t['Fréquence'] || '').trim().toLowerCase() !== 'ponctuel')
+        .filter((t) => TaskReset.isVisible(t, now));
 
       if (visibleTasks.length === 0) {
         listEl.innerHTML = '<p class="text-muted">Aucune tâche à faire pour le moment 🎉</p>';
