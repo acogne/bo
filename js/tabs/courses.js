@@ -12,6 +12,11 @@
   // Catégories définies dans la colonne Catégorie du sheet Courses.
   const CATEGORIES = ['Epicerie', 'Entretien', 'Pharma', 'Bricolage', 'Enfant', 'Conserverie', 'Frais', 'Viande/Poisson', 'Boulangerie', 'Fruits/Légumes', 'Autre'];
 
+  // Catégories actuellement repliées par l'utilisateur (dépliées par défaut).
+  // Vit au niveau du module pour survivre aux re-render de la liste (ajout,
+  // coche d'un article) tant que l'onglet reste monté.
+  const collapsedCategories = new Set();
+
   function categoryOptions(selected) {
     return CATEGORIES.map((cat) => `<option value="${escapeAttr(cat)}"${cat === selected ? ' selected' : ''}>${escapeHtml(cat)}</option>`).join('');
   }
@@ -118,13 +123,30 @@
 
       listEl.innerHTML = '';
       orderedGroups.forEach(([categorie, items]) => {
+        const isCollapsed = collapsedCategories.has(categorie);
+
         const group = document.createElement('div');
-        group.className = 'task-group';
-        group.innerHTML = `<h3 class="task-group-title">${escapeHtml(categorie)}</h3>`;
+        group.className = `task-group${isCollapsed ? ' is-collapsed' : ''}`;
+        group.innerHTML = `
+          <button type="button" class="task-group-title task-group-title--toggle" aria-expanded="${!isCollapsed}">
+            <span class="task-group-chevron">${Icons.svg('chevron')}</span>
+            ${escapeHtml(categorie)}
+          </button>
+        `;
 
         const chipsWrap = document.createElement('div');
         chipsWrap.className = 'task-chips';
+        chipsWrap.hidden = isCollapsed;
         items.forEach((entry) => chipsWrap.appendChild(renderChip(entry, container)));
+
+        const toggleBtn = group.querySelector('.task-group-title--toggle');
+        toggleBtn.addEventListener('click', () => {
+          const collapsed = group.classList.toggle('is-collapsed');
+          chipsWrap.hidden = collapsed;
+          toggleBtn.setAttribute('aria-expanded', String(!collapsed));
+          if (collapsed) collapsedCategories.add(categorie);
+          else collapsedCategories.delete(categorie);
+        });
 
         group.appendChild(chipsWrap);
         listEl.appendChild(group);

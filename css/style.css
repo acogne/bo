@@ -405,6 +405,35 @@ details[open] > .dash-card-summary::after {
   color: var(--text-muted);
 }
 
+.task-group-title--toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  color: inherit;
+  text-align: left;
+}
+
+.task-group-chevron {
+  display: flex;
+  width: 16px;
+  height: 16px;
+  transition: transform 0.2s ease;
+}
+
+.task-group.is-collapsed .task-group-title--toggle {
+  margin-bottom: 0;
+}
+
+.task-group.is-collapsed .task-group-chevron {
+  transform: rotate(-90deg);
+}
+
 /* ---------- Sections par semaine (Repas : "Cette semaine" / "Semaine +1") ---------- */
 
 .task-week-section {

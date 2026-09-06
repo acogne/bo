@@ -32,7 +32,9 @@ const Icons = (() => {
 
     vehicule: `<svg viewBox="0 0 24 24" ${STROKE}><path d="M4.5 15 6 9.5a2 2 0 0 1 1.9-1.4h8.2A2 2 0 0 1 18 9.5L19.5 15"/><rect x="3.5" y="15" width="17" height="4.5" rx="1.5"/><circle cx="7.5" cy="19.5" r="1.5"/><circle cx="16.5" cy="19.5" r="1.5"/></svg>`,
 
-    compteurs: `<svg viewBox="0 0 24 24" ${STROKE}><path d="M4 15a8 8 0 0 1 16 0"/><path d="M12 15 15.5 10.5"/><circle cx="12" cy="15" r="1.2" fill="currentColor" stroke="none"/></svg>`
+    compteurs: `<svg viewBox="0 0 24 24" ${STROKE}><path d="M4 15a8 8 0 0 1 16 0"/><path d="M12 15 15.5 10.5"/><circle cx="12" cy="15" r="1.2" fill="currentColor" stroke="none"/></svg>`,
+
+    chevron: `<svg viewBox="0 0 24 24" ${STROKE}><path d="M7 9.5 12 14.5 17 9.5"/></svg>`
   };
 
   function svg(key) {
