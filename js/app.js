@@ -226,6 +226,14 @@ async function renderDashboard(container) {
       <h3>Tâches de la semaine</h3>
       <div id="dash-week-tasks"><p class="text-muted">Chargement…</p></div>
     </section>
+    <section class="card dash-card" id="dash-jardin-card" hidden>
+      <h3>Jardin</h3>
+      <div id="dash-jardin-list"><p class="text-muted">Chargement…</p></div>
+    </section>
+    <section class="card dash-card" id="dash-bricolage-card" hidden>
+      <h3>Bricolage</h3>
+      <div id="dash-bricolage-list"><p class="text-muted">Chargement…</p></div>
+    </section>
     <section class="card dash-card">
       <h3>Tâches occasionnelles</h3>
       <div id="dash-occasionnel-tasks"><p class="text-muted">Chargement…</p></div>
@@ -252,8 +260,30 @@ async function renderDashboard(container) {
   renderDashboardWeekends();
   renderDashboardTodayTasks();
   renderDashboardOccasionnelTasks();
+  renderDashboardJardin();
+  renderDashboardBricolage();
   renderDashboardCompteurs();
   renderDashboardVehicule();
+}
+
+async function renderDashboardJardin() {
+  const card = document.getElementById('dash-jardin-card');
+  const el = document.getElementById('dash-jardin-list');
+  try {
+    await JardinTab.renderDashboardCard(card, el);
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+async function renderDashboardBricolage() {
+  const card = document.getElementById('dash-bricolage-card');
+  const el = document.getElementById('dash-bricolage-list');
+  try {
+    await BricolageTab.renderDashboardCard(card, el);
+  } catch (err) {
+    console.error(err);
+  }
 }
 
 // Citation du jour : sélection déterministe sur le jour de l'année (et non

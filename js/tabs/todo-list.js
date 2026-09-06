@@ -43,13 +43,12 @@ const TodoListTab = (() => {
         const order = { Haute: 0, Moyenne: 1, Basse: 2 };
         todo.sort((a, b) => (order[a['Priorité']] ?? 1) - (order[b['Priorité']] ?? 1));
 
-        const chipsWrap = document.createElement('div');
-        chipsWrap.className = 'task-chips';
-        todo.forEach((t) => chipsWrap.appendChild(renderChip(t)));
-
         listEl.innerHTML = '';
         const group = document.createElement('div');
         group.className = 'task-group';
+        const chipsWrap = document.createElement('div');
+        chipsWrap.className = 'task-chips';
+        todo.forEach((t) => chipsWrap.appendChild(renderChip(t, () => group.remove())));
         group.appendChild(chipsWrap);
         listEl.appendChild(group);
       } catch (err) {
@@ -58,7 +57,37 @@ const TodoListTab = (() => {
       }
     }
 
-    function renderChip(task) {
+    // ---------- Carte homepage ----------
+    // Affichée uniquement s'il reste des tâches à faire ; disparaît dès que
+    // la dernière est cochée, comme les cartes Compteurs/Véhicule.
+
+    async function renderDashboardCard(cardEl, listEl) {
+      try {
+        const { rows } = await SheetsAPI.getRows(sheetName);
+        const todo = rows.filter((t) => (t['Statut'] || '').trim().toLowerCase() !== 'fait');
+
+        if (todo.length === 0) {
+          cardEl.hidden = true;
+          return;
+        }
+
+        const order = { Haute: 0, Moyenne: 1, Basse: 2 };
+        todo.sort((a, b) => (order[a['Priorité']] ?? 1) - (order[b['Priorité']] ?? 1));
+
+        listEl.innerHTML = '';
+        const chipsWrap = document.createElement('div');
+        chipsWrap.className = 'task-chips';
+        todo.forEach((t) => chipsWrap.appendChild(renderChip(t, () => { cardEl.hidden = true; })));
+        listEl.appendChild(chipsWrap);
+        cardEl.hidden = false;
+      } catch (err) {
+        console.error(err);
+        listEl.innerHTML = '<p class="text-muted">Impossible de charger la liste.</p>';
+        cardEl.hidden = false;
+      }
+    }
+
+    function renderChip(task, onEmpty) {
       const chip = document.createElement('button');
       chip.type = 'button';
       chip.className = `task-chip accent-${accent}`;
@@ -76,11 +105,11 @@ const TodoListTab = (() => {
         </span>
       `;
 
-      chip.addEventListener('click', () => onCheck(chip, task));
+      chip.addEventListener('click', () => onCheck(chip, task, onEmpty));
       return chip;
     }
 
-    async function onCheck(chip, task) {
+    async function onCheck(chip, task, onEmpty) {
       if (chip.classList.contains('task-chip--busy')) return;
       chip.classList.add('task-chip--busy', 'task-chip--done');
       Confetti.burst();
@@ -92,10 +121,10 @@ const TodoListTab = (() => {
         setTimeout(() => {
           chip.classList.add('task-chip--exit');
           setTimeout(() => {
-            const group = chip.closest('.task-group');
+            const wrap = chip.closest('.task-chips');
             chip.remove();
-            if (group && group.querySelectorAll('.task-chip').length === 0) {
-              group.remove();
+            if (wrap && wrap.querySelectorAll('.task-chip').length === 0 && onEmpty) {
+              onEmpty();
             }
           }, 300);
         }, 500);
@@ -153,7 +182,7 @@ const TodoListTab = (() => {
       return div.innerHTML;
     }
 
-    return { title, accent, render };
+    return { title, accent, render, renderDashboardCard };
   }
 
   return { create };
