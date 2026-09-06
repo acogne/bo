@@ -861,6 +861,7 @@ async function onDashboardTaskDone(chip, item, emptyText) {
         chip.remove();
         if (wrap && wrap.querySelectorAll('.task-chip').length === 0) {
           wrap.parentElement.innerHTML = `<p class="text-muted">${emptyText}</p>`;
+          celebrateListCleared();
         }
       }, 300);
     }, 500);
@@ -869,6 +870,21 @@ async function onDashboardTaskDone(chip, item, emptyText) {
     chip.classList.remove('task-chip--busy', 'task-chip--done');
     alert("Impossible d'enregistrer cette tâche, réessaie.");
   }
+}
+
+// Petit gif de célébration affiché quand on coche la dernière tâche restante
+// d'une des cartes "Tâches du jour"/"Tâches de la semaine" (pas à l'ouverture
+// de la page, seulement au moment où la liste vient de se vider).
+function celebrateListCleared() {
+  const overlay = document.createElement('div');
+  overlay.className = 'celebrate-overlay';
+  overlay.innerHTML = `<img src="icons/funny-celebrate-40.gif" alt="Bravo, tout est fait !" />`;
+  document.body.appendChild(overlay);
+
+  setTimeout(() => {
+    overlay.classList.add('celebrate-overlay--exit');
+    setTimeout(() => overlay.remove(), 400);
+  }, 2200);
 }
 
 function escapeHtml(str) {

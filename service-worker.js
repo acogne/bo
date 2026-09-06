@@ -10,6 +10,7 @@ const APP_SHELL = [
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
+  './icons/funny-celebrate-40.gif',
   './css/style.css',
   './font/MADE Tommy Soft Medium PERSONAL USE.otf',
   './font/MADE Tommy Soft Bold PERSONAL USE.otf',
