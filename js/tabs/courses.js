@@ -10,7 +10,7 @@
   const SHEET_CHAT = CONFIG.SHEETS.CHAT_ACHATS;
 
   // Catégories définies dans la colonne Catégorie du sheet Courses.
-  const CATEGORIES = ['Entretien', 'Enfant', 'Conserverie', 'Frais', 'Viande/Poisson', 'Boulangerie', 'Fruits/Légumes', 'Autre'];
+  const CATEGORIES = ['Epicerie', 'Entretien', 'Pharma', 'Bricolage', 'Enfant', 'Conserverie', 'Frais', 'Viande/Poisson', 'Boulangerie', 'Fruits/Légumes', 'Autre'];
 
   function categoryOptions(selected) {
     return CATEGORIES.map((cat) => `<option value="${escapeAttr(cat)}"${cat === selected ? ' selected' : ''}>${escapeHtml(cat)}</option>`).join('');
