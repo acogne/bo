@@ -911,6 +911,12 @@ details[open] > .dash-card-summary::after {
 
 /* ---------- Dossier maladie (Suivi santé, onglet Enfant) ---------- */
 
+#enfant-suivi-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
 .suivi-meds {
   display: flex;
   gap: 10px;

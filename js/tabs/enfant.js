@@ -524,7 +524,7 @@
         </div>
 
         <form id="enfant-suivi-temp-form" class="quick-add-form">
-          <input type="text" id="enfant-suivi-temp-valeur" placeholder="Température (ex. 38.5°C)" required />
+          <input type="text" inputmode="decimal" id="enfant-suivi-temp-valeur" placeholder="Température (ex. 38.5)" required />
           <button type="submit" class="btn">Ajouter une température</button>
         </form>
 
