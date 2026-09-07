@@ -1,14 +1,16 @@
 // Onglet Véhicule : journal d'entretien (ID, Véhicule, Type_entretien,
-// Dernière_date, Prochaine_échéance, Kilométrage). Comme Compteurs, les deux
-// rappels saisonniers (pneus été/hiver) ne sont pas des lignes à part dans le
-// Sheet : ils sont calculés à partir de la date du jour. Contrairement à
-// Compteurs (deux rappels indépendants), ici un seul des deux peut être actif
-// à la fois : l'année est coupée en deux moitiés par les dates d'équinoxe
+// Dernière_date, Prochaine_échéance, Kilométrage). Comme Compteurs, les
+// rappels (pneus été/hiver + e-vignette) ne sont pas des lignes à part dans
+// le Sheet : ils sont calculés à partir de la date du jour. Les pneus
+// restent mutuellement exclusifs : un seul des deux peut être actif à la
+// fois, l'année étant coupée en deux moitiés par les dates d'équinoxe
 // (20 mars / 22 septembre, approximation à un jour près pour Genève — inutile
 // de calculer l'équinoxe astronomique exact pour un rappel pneus) — de mars à
 // septembre c'est "Pneus été" qui peut être en attente, de septembre à mars
 // suivant c'est "Pneus hiver". L'autre n'apparaît jamais pendant ce temps,
-// même si sa propre saison passée n'avait pas été cochée.
+// même si sa propre saison passée n'avait pas été cochée. La e-vignette est
+// indépendante de ce cycle (15 janvier, jusqu'à cochée) et peut donc être en
+// attente en même temps qu'un rappel pneus.
 //
 // Exposé via `VehiculeTab.renderDashboardCard` pour la home, même pattern que
 // CompteursTab.
@@ -18,6 +20,7 @@ const VehiculeTab = (() => {
 
   const SPRING = { type: 'Pneus été', month: 2, day: 20 };   // ~20 mars, arrivée du printemps à Genève
   const AUTUMN = { type: 'Pneus hiver', month: 8, day: 22 }; // ~22 septembre, arrivée de l'automne à Genève
+  const VIGNETTE = { type: 'E-vignette', month: 0, day: 15 }; // 15 janvier, indépendant du cycle pneus été/hiver
 
   // Le seul rappel pertinent pour "now" : celui de la moitié d'année en
   // cours, avec la date de départ de cette fenêtre (pour savoir si un
@@ -39,14 +42,31 @@ const VehiculeTab = (() => {
     return { ...AUTUMN, cycleStart: new Date(year - 1, AUTUMN.month, AUTUMN.day) };
   }
 
+  // La e-vignette n'apparaît qu'à partir du 15 janvier de l'année en cours
+  // (pas de report de l'année précédente si elle n'a pas été cochée — même
+  // logique "fenêtre, pas de report" que les pneus) et reste en attente
+  // toute l'année tant qu'elle n'est pas cochée.
+  function currentVignetteReminder(now = new Date()) {
+    const today = new Date(now);
+    today.setHours(0, 0, 0, 0);
+    const thresholdThisYear = new Date(today.getFullYear(), VIGNETTE.month, VIGNETTE.day);
+    if (today < thresholdThisYear) return null;
+    return { ...VIGNETTE, cycleStart: thresholdThisYear };
+  }
+
+  // Contrairement aux pneus (un seul actif à la fois), la e-vignette est
+  // indépendante et peut être en attente en même temps qu'un rappel pneus.
   async function getPendingReminders(now = new Date()) {
-    const reminder = currentSeasonalReminder(now);
+    const candidates = [currentSeasonalReminder(now), currentVignetteReminder(now)].filter(Boolean);
     const { rows } = await SheetsAPI.getRows(SHEET);
-    const done = rows.some((r) => {
-      const d = DateUtils.parseDate(r['Dernière_date']);
-      return d && d >= reminder.cycleStart && (r['Type_entretien'] || '').trim().toLowerCase() === reminder.type.toLowerCase();
+
+    return candidates.filter((reminder) => {
+      const done = rows.some((r) => {
+        const d = DateUtils.parseDate(r['Dernière_date']);
+        return d && d >= reminder.cycleStart && (r['Type_entretien'] || '').trim().toLowerCase() === reminder.type.toLowerCase();
+      });
+      return !done;
     });
-    return done ? [] : [reminder];
   }
 
   async function markDone(reminder, now = new Date()) {
@@ -100,7 +120,7 @@ const VehiculeTab = (() => {
       <span class="task-chip-check" aria-hidden="true"></span>
       <span class="task-chip-body">
         <span class="task-chip-name"><span class="task-chip-icon">${Icons.svg('vehicule')}</span>${escapeHtml(reminder.type)}</span>
-        <span class="task-chip-meta">Rappel saisonnier</span>
+        <span class="task-chip-meta">Rappel annuel</span>
       </span>
     `;
     chip.addEventListener('click', () => onCheck(chip, reminder, listEl));
@@ -216,7 +236,7 @@ const VehiculeTab = (() => {
     container.innerHTML = `
       <section class="tab-header accent-vehicule">
         <h2>Véhicule</h2>
-        <p class="week-info">Pneus été rappelés au printemps (~20 mars), pneus hiver à l'automne (~22 septembre).</p>
+        <p class="week-info">Pneus été rappelés au printemps (~20 mars), pneus hiver à l'automne (~22 septembre), e-vignette dès le 15 janvier.</p>
       </section>
 
       <section class="card">
