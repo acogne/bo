@@ -856,19 +856,22 @@
       if (profile['Adresse']) lines.push(profile['Adresse']);
       if (profile['Pere_nom']) lines.push(`Père : ${profile['Pere_nom']}${profile['Pere_tel'] ? ' — ' + profile['Pere_tel'] : ''}`);
       if (profile['Mere_nom']) lines.push(`Mère : ${profile['Mere_nom']}${profile['Mere_tel'] ? ' — ' + profile['Mere_tel'] : ''}`);
+      if (profile['Medecin_nom']) lines.push(`Médecin traitant : ${profile['Medecin_nom']}${profile['Medecin_tel'] ? ' — ' + profile['Medecin_tel'] : ''}`);
 
       if (lines.length > 0) {
-        const boxWidth = 90;
+        const boxWidth = 100;
         const lineHeight = 5.5;
-        const boxHeight = lines.length * lineHeight + 6;
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        const wrappedLines = lines.flatMap((line) => doc.splitTextToSize(line, boxWidth - 8));
+        const boxHeight = wrappedLines.length * lineHeight + 6;
+
         doc.setDrawColor(150);
         doc.setLineWidth(0.3);
         doc.rect(marginX, y, boxWidth, boxHeight);
 
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(10);
         let boxY = y + 6;
-        lines.forEach((line) => {
+        wrappedLines.forEach((line) => {
           doc.text(line, marginX + 4, boxY);
           boxY += lineHeight;
         });
