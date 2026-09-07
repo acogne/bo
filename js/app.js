@@ -32,6 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   injectMenuIcons();
   initCoursesShortcutIcon();
+  initMaladieShortcutIcon();
   initFieldBlurOnOutsideTap();
 
   window.addEventListener('hashchange', renderRoute);
@@ -103,6 +104,27 @@ async function refreshCoursesBadge() {
   }
 }
 
+function initMaladieShortcutIcon() {
+  const btn = document.getElementById('maladie-shortcut-btn');
+  btn.innerHTML = Icons.svg('croix');
+}
+
+// Affiche/masque le raccourci croix rouge du header selon qu'un dossier
+// maladie (Enfant_Maladie_Episodes) est ouvert ou non. Appelé au login, au
+// refresh global, et par enfant.js juste après l'ouverture/fermeture d'un
+// dossier — même schéma que refreshCoursesBadge() ci-dessus.
+async function refreshMaladieShortcut() {
+  if (!Auth.isLoggedIn()) return;
+  const btn = document.getElementById('maladie-shortcut-btn');
+  try {
+    const { rows } = await SheetsAPI.getRows(CONFIG.SHEETS.ENFANT_MALADIE_EPISODES);
+    const hasOpenEpisode = rows.some((r) => (r['Statut'] || '').trim().toLowerCase() === 'ouvert');
+    btn.hidden = !hasOpenEpisode;
+  } catch (err) {
+    console.error(err);
+  }
+}
+
 function renderAuthState(user) {
   const loginView = document.getElementById('login-view');
   const appView = document.getElementById('app-view');
@@ -114,6 +136,7 @@ function renderAuthState(user) {
     userLabel.textContent = user.email;
     renderRoute();
     refreshCoursesBadge();
+    refreshMaladieShortcut();
   } else {
     loginView.hidden = false;
     appView.hidden = true;
@@ -152,6 +175,7 @@ function onRefreshClick() {
   btn.classList.add('icon-btn--spin');
   renderRoute();
   refreshCoursesBadge();
+  refreshMaladieShortcut();
 }
 
 function currentRoute() {

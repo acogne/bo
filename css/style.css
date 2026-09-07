@@ -213,6 +213,12 @@ body {
   display: block;
 }
 
+/* Raccourci "dossier maladie en cours" dans le header — visible seulement
+   tant qu'un dossier est ouvert (voir refreshMaladieShortcut dans app.js). */
+.icon-btn--maladie {
+  color: #e5484d;
+}
+
 .icon-badge {
   position: absolute;
   top: 2px;

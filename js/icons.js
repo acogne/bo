@@ -17,6 +17,7 @@ const Icons = (() => {
     bricolage: `<svg viewBox="0 0 24 24" ${STROKE}><path d="M14.8 6.2a3.5 3.5 0 0 0-4.6 4.4L4.9 15.9a1.6 1.6 0 0 0 2.2 2.2l5.3-5.3a3.5 3.5 0 0 0 4.4-4.6l-2 2-1.8-.3-.3-1.8Z"/></svg>`,
 
     enfant: `<svg viewBox="0 0 24 24" ${STROKE}><rect x="9" y="9" width="6" height="10" rx="2"/><path d="M10.5 9V6.5a1.5 1.5 0 0 1 3 0V9"/><path d="M10 12.5h4M10 15.5h4"/></svg>`,
+    croix: `<svg viewBox="0 0 24 24" ${STROKE}><path d="M12 5v14M5 12h14"/></svg>`,
 
     chat: `<svg viewBox="0 0 24 24" ${STROKE}><circle cx="12" cy="15.5" r="3.4"/><circle cx="6.8" cy="10.2" r="1.6"/><circle cx="10.4" cy="7.3" r="1.6"/><circle cx="14.4" cy="7.3" r="1.6"/><circle cx="17.6" cy="10.4" r="1.6"/></svg>`,
 

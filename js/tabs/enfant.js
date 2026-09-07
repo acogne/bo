@@ -638,6 +638,7 @@
         'Saisi_par': user ? (user.name || user.email) : ''
       });
       await renderSuivi(container);
+      refreshMaladieShortcut();
     } catch (err) {
       console.error(err);
       alert("Impossible d'ouvrir le dossier, réessaie.");
@@ -656,6 +657,7 @@
         'Statut': 'Fermé'
       });
       await renderSuivi(container);
+      refreshMaladieShortcut();
     } catch (err) {
       console.error(err);
       alert('Impossible de clôturer le dossier, réessaie.');
