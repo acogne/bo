@@ -18,6 +18,7 @@ const Icons = (() => {
 
     enfant: `<svg viewBox="0 0 24 24" ${STROKE}><rect x="9" y="9" width="6" height="10" rx="2"/><path d="M10.5 9V6.5a1.5 1.5 0 0 1 3 0V9"/><path d="M10 12.5h4M10 15.5h4"/></svg>`,
     croix: `<svg viewBox="0 0 24 24" ${STROKE}><path d="M12 5v14M5 12h14"/></svg>`,
+    partager: `<svg viewBox="0 0 24 24" ${STROKE}><path d="M12 15V4M8 8l4-4 4 4"/><path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/></svg>`,
 
     chat: `<svg viewBox="0 0 24 24" ${STROKE}><circle cx="12" cy="15.5" r="3.4"/><circle cx="6.8" cy="10.2" r="1.6"/><circle cx="10.4" cy="7.3" r="1.6"/><circle cx="14.4" cy="7.3" r="1.6"/><circle cx="17.6" cy="10.4" r="1.6"/></svg>`,
 

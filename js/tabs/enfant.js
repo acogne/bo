@@ -12,6 +12,9 @@
   const SHEET_INFOS = CONFIG.SHEETS.ENFANT_INFOS;
   const SHEET_SUIVI_MALADIE = CONFIG.SHEETS.ENFANT_SUIVI_MALADIE;
   const SHEET_MALADIE_EPISODES = CONFIG.SHEETS.ENFANT_MALADIE_EPISODES;
+  const SHEET_PROFIL = CONFIG.SHEETS.ENFANT_PROFIL;
+
+  const JSPDF_URL = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
 
   // Règles du docteur pour l'alternance Dafalgan/Algifor : 3h minimum entre
   // deux prises quelconques (ce qui permet d'alterner toutes les 3h), 6h
@@ -516,6 +519,8 @@
         return;
       }
 
+      warmShareDeps();
+
       const { rows: allEntries } = await SheetsAPI.getRows(SHEET_SUIVI_MALADIE);
       const entries = allEntries.filter((e) => String(e['Episode_ID']) === String(episode['ID']));
       const sorted = [...entries].sort((a, b) => (b['Date_heure'] || '').localeCompare(a['Date_heure'] || ''));
@@ -544,7 +549,10 @@
 
         <div class="info-rows" id="enfant-suivi-timeline"></div>
 
-        <button type="button" class="btn-secondary" id="enfant-suivi-close-btn">Clôturer ce dossier</button>
+        <div class="suivi-actions">
+          <button type="button" class="btn-secondary" id="enfant-suivi-share-btn"><span class="inline-icon">${Icons.svg('partager')}</span>Partager le dossier (PDF)</button>
+          <button type="button" class="btn-secondary" id="enfant-suivi-close-btn">Clôturer ce dossier</button>
+        </div>
       `;
 
       const timelineEl = el.querySelector('#enfant-suivi-timeline');
@@ -569,6 +577,7 @@
       });
       el.querySelector('#enfant-suivi-temp-form').addEventListener('submit', (e) => onAddTemp(e, container, episode));
       el.querySelector('#enfant-suivi-obs-form').addEventListener('submit', (e) => onAddObs(e, container, episode));
+      el.querySelector('#enfant-suivi-share-btn').addEventListener('click', () => onShareDossier(container, episode, entries));
       el.querySelector('#enfant-suivi-close-btn').addEventListener('click', () => onCloseDossier(container, episode));
     } catch (err) {
       console.error(err);
@@ -725,6 +734,267 @@
     } finally {
       submitBtn.disabled = false;
     }
+  }
+
+  // ---------- Partage du dossier en PDF ----------
+  // Génère un PDF (jsPDF, chargé à la demande depuis un CDN — pas de build
+  // step dans ce projet) résumant tout le dossier, du plus ancien au plus
+  // récent, et ouvre l'écran de partage natif (Gmail/Drive/WhatsApp sur iOS)
+  // via l'API Web Share. Les infos de l'encadré (naissance, adresse,
+  // contacts parents) viennent d'Enfant_Profil — jamais de config.js, qui
+  // est un fichier public servi sans authentification par GitHub Pages.
+
+  // iOS/Safari n'autorise navigator.share() que s'il est appelé de façon
+  // SYNCHRONE dans le geste utilisateur (le clic) — le moindre `await` avant
+  // (même un chargement CDN quasi instantané) fait échouer l'appel avec
+  // NotAllowedError. On précharge donc jsPDF et le profil en arrière-plan dès
+  // que le dossier s'affiche (warmShareDeps), pour que le clic sur "Partager"
+  // puisse tout faire en synchrone si le préchargement a eu le temps d'aboutir.
+  let jsPdfCtorCache = null;
+  let jsPdfLoadPromise = null;
+  function loadJsPDF() {
+    if (jsPdfCtorCache) return Promise.resolve(jsPdfCtorCache);
+    if (window.jspdf && window.jspdf.jsPDF) {
+      jsPdfCtorCache = window.jspdf.jsPDF;
+      return Promise.resolve(jsPdfCtorCache);
+    }
+    if (!jsPdfLoadPromise) {
+      jsPdfLoadPromise = new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = JSPDF_URL;
+        script.onload = () => {
+          jsPdfCtorCache = window.jspdf.jsPDF;
+          resolve(jsPdfCtorCache);
+        };
+        script.onerror = () => {
+          jsPdfLoadPromise = null;
+          reject(new Error('Impossible de charger la librairie PDF.'));
+        };
+        document.head.appendChild(script);
+      });
+    }
+    return jsPdfLoadPromise;
+  }
+
+  let profileCache = null;
+  let profileLoaded = false;
+  let profileLoadPromise = null;
+  function getEnfantProfile() {
+    if (profileLoaded) return Promise.resolve(profileCache);
+    if (!profileLoadPromise) {
+      profileLoadPromise = SheetsAPI.getRows(SHEET_PROFIL).then(({ rows }) => {
+        profileCache = rows[0] || null;
+        profileLoaded = true;
+        return profileCache;
+      }).catch((err) => {
+        profileLoadPromise = null;
+        throw err;
+      });
+    }
+    return profileLoadPromise;
+  }
+
+  function warmShareDeps() {
+    loadJsPDF().catch(() => {});
+    getEnfantProfile().catch(() => {});
+  }
+
+  function formatDatePdf(value) {
+    const d = DateUtils.parseDate(value);
+    if (!d) return '';
+    return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  }
+
+  function formatDayHeading(value) {
+    const d = DateUtils.parseDate(value);
+    if (!d) return '';
+    const label = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    return label.charAt(0).toUpperCase() + label.slice(1);
+  }
+
+  function isoDateOnly(value) {
+    const d = DateUtils.parseDate(value);
+    return d ? DateUtils.toISODate(d) : '';
+  }
+
+  function slugifyName(name) {
+    return String(name || 'Enfant')
+      .normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-zA-Z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '');
+  }
+
+  function buildDossierPdfBlob(jsPDFCtor, episode, entries, profile) {
+    const doc = new jsPDFCtor({ unit: 'mm', format: 'a4' });
+
+    const marginX = 18;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    let y = 20;
+
+    function ensureSpace(needed) {
+      if (y + needed > pageHeight - 15) {
+        doc.addPage();
+        y = 20;
+      }
+    }
+
+    const enfantNom = (profile && profile['Nom']) || 'Enfant';
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.text(`Évolution ${enfantNom}`, marginX, y);
+    y += 7;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(12);
+    doc.text(`${formatDatePdf(episode['Date_ouverture'])} - ${formatDatePdf(new Date())}`, marginX, y);
+    y += 10;
+
+    if (profile) {
+      const lines = [];
+      if (profile['Date_naissance']) lines.push(`Né(e) le ${profile['Date_naissance']}`);
+      if (profile['Adresse']) lines.push(profile['Adresse']);
+      if (profile['Pere_nom']) lines.push(`Père : ${profile['Pere_nom']}${profile['Pere_tel'] ? ' — ' + profile['Pere_tel'] : ''}`);
+      if (profile['Mere_nom']) lines.push(`Mère : ${profile['Mere_nom']}${profile['Mere_tel'] ? ' — ' + profile['Mere_tel'] : ''}`);
+
+      if (lines.length > 0) {
+        const boxWidth = 90;
+        const lineHeight = 5.5;
+        const boxHeight = lines.length * lineHeight + 6;
+        doc.setDrawColor(150);
+        doc.setLineWidth(0.3);
+        doc.rect(marginX, y, boxWidth, boxHeight);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        let boxY = y + 6;
+        lines.forEach((line) => {
+          doc.text(line, marginX + 4, boxY);
+          boxY += lineHeight;
+        });
+
+        y += boxHeight + 10;
+      }
+    }
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text('Suivi', marginX, y);
+    y += 8;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    ensureSpace(6);
+    doc.text(`Ouverture du dossier — ${formatDateTime(episode['Date_ouverture'])}`, marginX, y);
+    y += 7;
+
+    const chronological = [...entries].sort((a, b) => (a['Date_heure'] || '').localeCompare(b['Date_heure'] || ''));
+    let lastDay = isoDateOnly(episode['Date_ouverture']);
+
+    chronological.forEach((entry) => {
+      const entryDay = isoDateOnly(entry['Date_heure']);
+      if (entryDay && entryDay !== lastDay) {
+        lastDay = entryDay;
+        ensureSpace(9);
+        y += 2;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.text(formatDayHeading(entry['Date_heure']), marginX, y);
+        y += 6;
+      }
+
+      const heure = DateUtils.parseDate(entry['Date_heure']);
+      const heureLabel = heure ? heure.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '';
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      const wrapped = doc.splitTextToSize(`${heureLabel} — ${suiviEntryLabel(entry)}`, pageWidth - marginX * 2);
+      wrapped.forEach((line) => {
+        ensureSpace(6);
+        doc.text(line, marginX, y);
+        y += 5.5;
+      });
+    });
+
+    if (episode['Date_fermeture']) {
+      ensureSpace(9);
+      y += 2;
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(10);
+      doc.text(`Clôture du dossier — ${formatDateTime(episode['Date_fermeture'])}`, marginX, y);
+    }
+
+    return doc.output('blob');
+  }
+
+  function filenameForDossier(episode, enfantNom) {
+    const dateOuvertureIso = isoDateOnly(episode['Date_ouverture']) || DateUtils.toISODate();
+    const dateAujourdhuiIso = DateUtils.toISODate();
+    return `Evolution_${slugifyName(enfantNom)}_${dateOuvertureIso}_${dateAujourdhuiIso}.pdf`;
+  }
+
+  function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  }
+
+  // Doit rester synchrone jusqu'à l'appel à share() inclus (voir warmShareDeps
+  // ci-dessus) : construit le PDF et tente le partage natif, sans passer par
+  // aucun await avant navigator.share().
+  function shareOrDownloadDossier(btn, episode, entries, jsPDFCtor, profile) {
+    const enfantNom = (profile && profile['Nom']) || 'Enfant';
+    const filename = filenameForDossier(episode, enfantNom);
+    const blob = buildDossierPdfBlob(jsPDFCtor, episode, entries, profile);
+    const file = new File([blob], filename, { type: 'application/pdf' });
+
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      if (btn) btn.disabled = true;
+      navigator.share({ files: [file], title: `Évolution ${enfantNom}` })
+        .catch((err) => {
+          if (err && err.name === 'AbortError') return; // partage annulé par l'utilisateur
+          console.error(err);
+          downloadBlob(blob, filename);
+        })
+        .finally(() => { if (btn) btn.disabled = false; });
+    } else {
+      downloadBlob(blob, filename);
+    }
+  }
+
+  function onShareDossier(container, episode, entries) {
+    const btn = container.querySelector('#enfant-suivi-share-btn');
+
+    if (jsPdfCtorCache && profileLoaded) {
+      try {
+        shareOrDownloadDossier(btn, episode, entries, jsPdfCtorCache, profileCache);
+      } catch (err) {
+        console.error(err);
+        alert('Impossible de générer le PDF, réessaie.');
+      }
+      return;
+    }
+
+    // Préchargement pas encore terminé (réseau lent ou clic très rapide) : le
+    // partage natif ne sera de toute façon plus disponible une fois ces
+    // chargements résolus (le geste utilisateur aura expiré), donc on
+    // télécharge directement le PDF une fois prêt.
+    if (btn) btn.disabled = true;
+    Promise.all([loadJsPDF(), getEnfantProfile()])
+      .then(([jsPDFCtor, profile]) => {
+        const enfantNom = (profile && profile['Nom']) || 'Enfant';
+        const blob = buildDossierPdfBlob(jsPDFCtor, episode, entries, profile);
+        downloadBlob(blob, filenameForDossier(episode, enfantNom));
+      })
+      .catch((err) => {
+        console.error(err);
+        alert('Impossible de générer le PDF, réessaie.');
+      })
+      .finally(() => { if (btn) btn.disabled = false; });
   }
 
   // ---------- Utilitaires ----------
