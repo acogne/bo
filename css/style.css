@@ -219,6 +219,10 @@ body {
   color: #e5484d;
 }
 
+.icon-btn--maladie svg {
+  stroke-width: 3;
+}
+
 .icon-badge {
   position: absolute;
   top: 2px;

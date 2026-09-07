@@ -88,7 +88,7 @@
         <button type="submit" class="btn">Ajouter une affaire</button>
       </form>
 
-      <section class="card">
+      <section id="enfant-suivi-section" class="card">
         <h3>Suivi santé</h3>
         <div id="enfant-suivi-content">
           <p class="text-muted">Chargement…</p>
@@ -497,6 +497,15 @@
     const el = container.querySelector('#enfant-suivi-content');
     try {
       const episode = await getOpenEpisode();
+
+      // Un dossier ouvert doit sauter aux yeux : la section remonte tout en
+      // haut de l'onglet (juste sous le titre) tant qu'il reste ouvert. Sans
+      // dossier, elle garde sa place naturelle en bas du template.
+      const suiviSection = container.querySelector('#enfant-suivi-section');
+      const header = container.querySelector('.tab-header');
+      if (episode && suiviSection && header) {
+        header.after(suiviSection);
+      }
 
       if (!episode) {
         el.innerHTML = `
