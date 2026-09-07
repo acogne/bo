@@ -11,6 +11,14 @@
   const SHEET_NOUNOU_ABSENCES = CONFIG.SHEETS.ENFANT_NOUNOU_ABSENCES;
   const SHEET_INFOS = CONFIG.SHEETS.ENFANT_INFOS;
   const SHEET_SUIVI_MALADIE = CONFIG.SHEETS.ENFANT_SUIVI_MALADIE;
+  const SHEET_MALADIE_EPISODES = CONFIG.SHEETS.ENFANT_MALADIE_EPISODES;
+
+  // Règles du docteur pour l'alternance Dafalgan/Algifor : 3h minimum entre
+  // deux prises quelconques (ce qui permet d'alterner toutes les 3h), 6h
+  // minimum entre deux prises du MÊME médicament. Les deux combinées donnent
+  // le bon résultat même si l'alternance n'est pas parfaitement respectée.
+  const ALTERNANCE_MS = 3 * 3600 * 1000;
+  const MEME_MED_MS = 6 * 3600 * 1000;
 
   async function render(container) {
     container.innerHTML = `
@@ -82,28 +90,15 @@
 
       <section class="card">
         <h3>Suivi santé</h3>
-        <div id="enfant-suivi-list">
+        <div id="enfant-suivi-content">
           <p class="text-muted">Chargement…</p>
         </div>
       </section>
-      <form id="enfant-suivi-add-form" class="quick-add-form">
-        <select id="enfant-suivi-type">
-          <option value="Température">Température</option>
-          <option value="Poids">Poids</option>
-          <option value="Taille">Taille</option>
-          <option value="Symptôme">Symptôme</option>
-          <option value="Médicament">Médicament</option>
-          <option value="Autre">Autre</option>
-        </select>
-        <input type="text" id="enfant-suivi-valeur" placeholder="Valeur (ex. 38.5°C, 12kg)" required />
-        <button type="submit" class="btn">Ajouter un relevé</button>
-      </form>
     `;
 
     container.querySelector('#enfant-absence-add-form').addEventListener('submit', (e) => onAddAbsence(e, container));
     container.querySelector('#enfant-evenement-add-form').addEventListener('submit', (e) => onAddEvenement(e, container));
     container.querySelector('#enfant-affaire-add-form').addEventListener('submit', (e) => onAddAffaire(e, container));
-    container.querySelector('#enfant-suivi-add-form').addEventListener('submit', (e) => onAddSuivi(e, container));
 
     await Promise.all([
       renderGardeWeekInfo(container),
@@ -488,73 +483,234 @@
     }
   }
 
-  // ---------- Suivi santé ----------
+  // ---------- Suivi santé (dossier maladie) ----------
+  // Un seul dossier ouvert à la fois (Enfant_Maladie_Episodes.Statut = 'Ouvert').
+  // Toutes les entrées de suivi (Enfant_Suivi_Maladie) sont rattachées au
+  // dossier via Episode_ID et s'affichent dans une timeline unique.
+
+  async function getOpenEpisode() {
+    const { rows } = await SheetsAPI.getRows(SHEET_MALADIE_EPISODES);
+    return rows.find((r) => (r['Statut'] || '').trim().toLowerCase() === 'ouvert') || null;
+  }
 
   async function renderSuivi(container) {
-    const el = container.querySelector('#enfant-suivi-list');
+    const el = container.querySelector('#enfant-suivi-content');
     try {
-      const { rows } = await SheetsAPI.getRows(SHEET_SUIVI_MALADIE);
+      const episode = await getOpenEpisode();
 
-      if (rows.length === 0) {
-        el.innerHTML = '<p class="text-muted">Aucun relevé enregistré.</p>';
+      if (!episode) {
+        el.innerHTML = `
+          <p class="text-muted">Aucun dossier en cours.</p>
+          <button type="button" class="btn" id="enfant-suivi-open-btn">🤒 L'enfant est malade</button>
+        `;
+        el.querySelector('#enfant-suivi-open-btn').addEventListener('click', () => onOpenDossier(container));
         return;
       }
 
-      const recent = [...rows]
-        .sort((a, b) => (b['Date_heure'] || '').localeCompare(a['Date_heure'] || ''))
-        .slice(0, 8);
+      const { rows: allEntries } = await SheetsAPI.getRows(SHEET_SUIVI_MALADIE);
+      const entries = allEntries.filter((e) => String(e['Episode_ID']) === String(episode['ID']));
+      const sorted = [...entries].sort((a, b) => (b['Date_heure'] || '').localeCompare(a['Date_heure'] || ''));
 
-      el.innerHTML = '';
-      const wrap = document.createElement('div');
-      wrap.className = 'info-rows';
-      recent.forEach((s) => {
-        const row = document.createElement('div');
-        row.className = 'info-row accent-enfant';
-        const metaParts = [formatDateTime(s['Date_heure'])];
-        if (s['Saisi_par']) metaParts.push(s['Saisi_par']);
-        row.innerHTML = `
-          <div class="info-row-title">${escapeHtml(s['Type'] || '')} — ${escapeHtml(s['Valeur'] || '')}</div>
-          <div class="info-row-meta">${escapeHtml(metaParts.join(' · '))}</div>
-        `;
-        wrap.appendChild(row);
+      const now = new Date();
+      const dafalgan = computeMedStatus(entries, 'Dafalgan', now);
+      const algifor = computeMedStatus(entries, 'Algifor', now);
+
+      el.innerHTML = `
+        <p class="week-info">Dossier ouvert le ${escapeHtml(formatDateTime(episode['Date_ouverture']))}</p>
+
+        <div class="suivi-meds">
+          ${renderMedButton('Dafalgan', dafalgan)}
+          ${renderMedButton('Algifor', algifor)}
+        </div>
+
+        <form id="enfant-suivi-temp-form" class="quick-add-form">
+          <input type="text" id="enfant-suivi-temp-valeur" placeholder="Température (ex. 38.5°C)" required />
+          <button type="submit" class="btn">Ajouter une température</button>
+        </form>
+
+        <form id="enfant-suivi-obs-form" class="quick-add-form">
+          <input type="text" id="enfant-suivi-obs-valeur" placeholder="Observation (ex. régurgite, refuse de manger…)" required />
+          <button type="submit" class="btn">Ajouter une observation</button>
+        </form>
+
+        <div class="info-rows" id="enfant-suivi-timeline"></div>
+
+        <button type="button" class="btn-secondary" id="enfant-suivi-close-btn">Clôturer ce dossier</button>
+      `;
+
+      const timelineEl = el.querySelector('#enfant-suivi-timeline');
+      if (sorted.length === 0) {
+        timelineEl.innerHTML = '<p class="text-muted">Aucun relevé pour ce dossier.</p>';
+      } else {
+        sorted.forEach((entry) => {
+          const row = document.createElement('div');
+          row.className = 'info-row accent-enfant';
+          const metaParts = [formatDateTime(entry['Date_heure'])];
+          if (entry['Saisi_par']) metaParts.push(entry['Saisi_par']);
+          row.innerHTML = `
+            <div class="info-row-title">${escapeHtml(suiviEntryLabel(entry))}</div>
+            <div class="info-row-meta">${escapeHtml(metaParts.join(' · '))}</div>
+          `;
+          timelineEl.appendChild(row);
+        });
+      }
+
+      el.querySelectorAll('.suivi-med-btn').forEach((btn) => {
+        btn.addEventListener('click', () => onGiveMedicament(container, episode, btn.dataset.med));
       });
-      el.appendChild(wrap);
+      el.querySelector('#enfant-suivi-temp-form').addEventListener('submit', (e) => onAddTemp(e, container, episode));
+      el.querySelector('#enfant-suivi-obs-form').addEventListener('submit', (e) => onAddObs(e, container, episode));
+      el.querySelector('#enfant-suivi-close-btn').addEventListener('click', () => onCloseDossier(container, episode));
     } catch (err) {
       console.error(err);
       el.innerHTML = '<p class="text-muted">Impossible de charger le suivi santé.</p>';
     }
   }
 
-  async function onAddSuivi(e, container) {
-    e.preventDefault();
-    const typeSelect = container.querySelector('#enfant-suivi-type');
-    const valeurInput = container.querySelector('#enfant-suivi-valeur');
+  function suiviEntryLabel(entry) {
+    const type = entry['Type'];
+    const valeur = entry['Valeur'] || '';
+    if (type === 'Observation') return valeur;
+    if (type === 'Médicament') return `${valeur} donné`;
+    return `${type} — ${valeur}`;
+  }
 
-    const valeur = valeurInput.value.trim();
+  function computeMedStatus(entries, med, now) {
+    const doses = entries
+      .filter((e) => e['Type'] === 'Médicament')
+      .map((e) => ({ med: e['Valeur'], time: DateUtils.parseDate(e['Date_heure']) }))
+      .filter((d) => d.time)
+      .sort((a, b) => b.time - a.time);
+
+    const lastAny = doses[0];
+    const lastSame = doses.find((d) => d.med === med);
+
+    let nextAllowedMs = 0;
+    if (lastAny) nextAllowedMs = Math.max(nextAllowedMs, lastAny.time.getTime() + ALTERNANCE_MS);
+    if (lastSame) nextAllowedMs = Math.max(nextAllowedMs, lastSame.time.getTime() + MEME_MED_MS);
+
+    const nextAllowed = new Date(nextAllowedMs);
+    return { ok: now.getTime() >= nextAllowedMs, nextAllowed };
+  }
+
+  function renderMedButton(med, status) {
+    if (status.ok) {
+      return `<button type="button" class="btn suivi-med-btn" data-med="${med}">Donner ${med}</button>`;
+    }
+    return `<button type="button" class="btn suivi-med-btn" data-med="${med}" disabled>${escapeHtml(med)} — possible ${escapeHtml(formatCountdown(status.nextAllowed))}</button>`;
+  }
+
+  function formatCountdown(nextAllowed) {
+    const diffMs = nextAllowed.getTime() - Date.now();
+    if (diffMs <= 0) return 'maintenant';
+    const totalMin = Math.ceil(diffMs / 60000);
+    const h = Math.floor(totalMin / 60);
+    const m = totalMin % 60;
+    const remaining = h > 0 ? `${h}h${String(m).padStart(2, '0')}` : `${m}min`;
+    const timeLabel = nextAllowed.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    return `dans ${remaining} (${timeLabel})`;
+  }
+
+  async function addSuiviEntry(episode, type, valeur) {
+    const id = await nextId(SHEET_SUIVI_MALADIE);
+    const user = Auth.getUser();
+    await SheetsAPI.appendRow(SHEET_SUIVI_MALADIE, {
+      'ID': id,
+      'Date_heure': new Date().toISOString(),
+      'Type': type,
+      'Valeur': valeur,
+      'Saisi_par': user ? (user.name || user.email) : '',
+      'Episode_ID': episode['ID']
+    });
+  }
+
+  async function onOpenDossier(container) {
+    const btn = container.querySelector('#enfant-suivi-open-btn');
+    if (btn) btn.disabled = true;
+    try {
+      const id = await nextId(SHEET_MALADIE_EPISODES);
+      const user = Auth.getUser();
+      await SheetsAPI.appendRow(SHEET_MALADIE_EPISODES, {
+        'ID': id,
+        'Date_ouverture': new Date().toISOString(),
+        'Date_fermeture': '',
+        'Statut': 'Ouvert',
+        'Saisi_par': user ? (user.name || user.email) : ''
+      });
+      await renderSuivi(container);
+    } catch (err) {
+      console.error(err);
+      alert("Impossible d'ouvrir le dossier, réessaie.");
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  async function onCloseDossier(container, episode) {
+    if (!confirm('Clôturer ce dossier maladie ?')) return;
+    const btn = container.querySelector('#enfant-suivi-close-btn');
+    if (btn) btn.disabled = true;
+    try {
+      await SheetsAPI.updateRow(SHEET_MALADIE_EPISODES, episode._rowIndex, {
+        ...episode,
+        'Date_fermeture': new Date().toISOString(),
+        'Statut': 'Fermé'
+      });
+      await renderSuivi(container);
+    } catch (err) {
+      console.error(err);
+      alert('Impossible de clôturer le dossier, réessaie.');
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  async function onGiveMedicament(container, episode, med) {
+    const btn = container.querySelector(`.suivi-med-btn[data-med="${med}"]`);
+    if (btn) btn.disabled = true;
+    try {
+      await addSuiviEntry(episode, 'Médicament', med);
+      await renderSuivi(container);
+    } catch (err) {
+      console.error(err);
+      alert("Impossible d'enregistrer cette prise, réessaie.");
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  async function onAddTemp(e, container, episode) {
+    e.preventDefault();
+    const input = container.querySelector('#enfant-suivi-temp-valeur');
+    const valeur = input.value.trim();
     if (!valeur) return;
 
     const submitBtn = e.target.querySelector('button[type="submit"]');
     submitBtn.disabled = true;
 
     try {
-      const id = await nextId(SHEET_SUIVI_MALADIE);
-      const user = Auth.getUser();
-
-      await SheetsAPI.appendRow(SHEET_SUIVI_MALADIE, {
-        'ID': id,
-        'Date_heure': new Date().toISOString(),
-        'Type': typeSelect.value,
-        'Valeur': valeur,
-        'Saisi_par': user ? (user.name || user.email) : ''
-      });
-
-      valeurInput.value = '';
-      typeSelect.value = 'Température';
-
+      await addSuiviEntry(episode, 'Température', valeur);
       await renderSuivi(container);
     } catch (err) {
       console.error(err);
-      alert("Impossible d'ajouter ce relevé, réessaie.");
+      alert("Impossible d'ajouter cette température, réessaie.");
+    } finally {
+      submitBtn.disabled = false;
+    }
+  }
+
+  async function onAddObs(e, container, episode) {
+    e.preventDefault();
+    const input = container.querySelector('#enfant-suivi-obs-valeur');
+    const valeur = input.value.trim();
+    if (!valeur) return;
+
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+
+    try {
+      await addSuiviEntry(episode, 'Observation', valeur);
+      await renderSuivi(container);
+    } catch (err) {
+      console.error(err);
+      alert("Impossible d'ajouter cette observation, réessaie.");
     } finally {
       submitBtn.disabled = false;
     }

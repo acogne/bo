@@ -149,6 +149,11 @@ body {
   text-decoration: underline;
 }
 
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .text-muted {
   color: var(--text-muted);
   font-size: 14px;
@@ -902,6 +907,19 @@ details[open] > .dash-card-summary::after {
   color: var(--text-muted);
   font-weight: 500;
   margin-top: 2px;
+}
+
+/* ---------- Dossier maladie (Suivi santé, onglet Enfant) ---------- */
+
+.suivi-meds {
+  display: flex;
+  gap: 10px;
+}
+
+.suivi-med-btn {
+  flex: 1;
+  margin-top: 0;
+  font-size: 13px;
 }
 
 /* ---------- Planning type (Garde_Hebdo) ---------- */

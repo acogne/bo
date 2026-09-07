@@ -35,6 +35,7 @@ const CONFIG = {
     ENFANT_NOUNOU_ABSENCES: 'Enfant_Nounou_Absences',
     ENFANT_INFOS: 'Enfant_Infos',
     ENFANT_SUIVI_MALADIE: 'Enfant_Suivi_Maladie',
+    ENFANT_MALADIE_EPISODES: 'Enfant_Maladie_Episodes',
     CHAT_EVENEMENTS: 'Chat_Evenements',
     CHAT_ACHATS: 'Chat_Achats',
     CHAT_MEDICAMENTS: 'Chat_Medicaments',
