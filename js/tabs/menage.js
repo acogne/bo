@@ -18,16 +18,23 @@
       <form id="menage-add-form" class="quick-add-form">
         <input type="text" id="menage-add-nom" placeholder="Nouvelle tâche" required />
         <select id="menage-add-frequence">
-          <option value="quotidien">Quotidien</option>
+          <option value="ponctuel">Ponctuel</option>
+          <option value="quotidien" selected>Quotidien</option>
           <option value="hebdo">Hebdo</option>
           <option value="occasionnel">Occasionnel</option>
         </select>
+        <input type="number" id="menage-add-seuil-orange" class="menage-add-occasionnel-field" placeholder="Seuil orange (jours)" min="0" hidden />
+        <input type="number" id="menage-add-seuil-rouge" class="menage-add-occasionnel-field" placeholder="Seuil rouge (jours)" min="0" hidden />
         <input type="text" id="menage-add-assigne" placeholder="Assigné à (optionnel)" />
         <button type="submit" class="btn">Ajouter</button>
       </form>
     `;
 
     container.querySelector('#menage-add-form').addEventListener('submit', (e) => onAddTask(e, container));
+    container.querySelector('#menage-add-frequence').addEventListener('change', (e) => {
+      const isOccasionnel = e.target.value === 'occasionnel';
+      container.querySelectorAll('.menage-add-occasionnel-field').forEach((el) => { el.hidden = !isOccasionnel; });
+    });
 
     await Promise.all([renderWeekInfo(container), renderTaskList(container)]);
   }
@@ -55,8 +62,9 @@
     try {
       const { rows } = await SheetsAPI.getRows(SHEET);
       const now = new Date();
-      // Les tâches "ponctuel" sont des ajouts manuels depuis la carte "Tâches
-      // du jour" du dashboard : elles ne doivent apparaître que là, pas ici.
+      // Les tâches "ponctuel" (qu'elles soient ajoutées ici ou depuis la
+      // carte "Tâches du jour" du dashboard) ne doivent apparaître que sur
+      // la home, jamais dans cette liste dédiée aux tâches récurrentes.
       const visibleTasks = rows
         .filter((t) => (t['Fréquence'] || '').trim().toLowerCase() !== 'ponctuel')
         .filter((t) => TaskReset.isVisible(t, now));
@@ -182,11 +190,14 @@
     e.preventDefault();
     const nomInput = container.querySelector('#menage-add-nom');
     const frequenceSelect = container.querySelector('#menage-add-frequence');
+    const seuilOrangeInput = container.querySelector('#menage-add-seuil-orange');
+    const seuilRougeInput = container.querySelector('#menage-add-seuil-rouge');
     const assigneInput = container.querySelector('#menage-add-assigne');
 
     const nom = nomInput.value.trim();
     if (!nom) return;
 
+    const frequence = frequenceSelect.value;
     const submitBtn = e.target.querySelector('button[type="submit"]');
     submitBtn.disabled = true;
 
@@ -197,18 +208,28 @@
         return isNaN(id) ? max : Math.max(max, id);
       }, 0);
 
-      await SheetsAPI.appendRow(SHEET, {
+      const newTask = {
         'ID': maxId + 1,
         'Nom': nom,
-        'Fréquence': frequenceSelect.value,
+        'Fréquence': frequence,
         'Dernière_fois': '',
         'Assigné_à': assigneInput.value.trim(),
         'Statut': 'À faire'
-      });
+      };
+      if (frequence === 'occasionnel') {
+        newTask['Seuil_orange'] = seuilOrangeInput.value.trim();
+        newTask['Seuil_rouge'] = seuilRougeInput.value.trim();
+      }
+
+      await SheetsAPI.appendRow(SHEET, newTask);
 
       nomInput.value = '';
       assigneInput.value = '';
       frequenceSelect.value = 'quotidien';
+      seuilOrangeInput.value = '';
+      seuilRougeInput.value = '';
+      seuilOrangeInput.hidden = true;
+      seuilRougeInput.hidden = true;
 
       await renderTaskList(container);
     } catch (err) {

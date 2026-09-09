@@ -242,6 +242,14 @@ async function renderDashboard(container) {
       </div>
       <form id="dash-add-task-form" class="quick-add-form" hidden>
         <input type="text" id="dash-task-nom" placeholder="Nouvelle tâche" required />
+        <select id="dash-task-frequence">
+          <option value="ponctuel">Ponctuel</option>
+          <option value="quotidien">Quotidienne</option>
+          <option value="hebdo">Hebdo</option>
+          <option value="occasionnel">Occasionnel</option>
+        </select>
+        <input type="number" id="dash-task-seuil-orange" class="dash-task-occasionnel-field" placeholder="Seuil orange (jours)" min="0" hidden />
+        <input type="number" id="dash-task-seuil-rouge" class="dash-task-occasionnel-field" placeholder="Seuil rouge (jours)" min="0" hidden />
         <button type="submit" class="btn">Ajouter</button>
       </form>
       <div id="dash-today-tasks"><p class="text-muted">Chargement…</p></div>
@@ -379,19 +387,30 @@ function initDashAddTaskForm() {
   const toggleBtn = document.getElementById('dash-add-task-toggle');
   const form = document.getElementById('dash-add-task-form');
   const nomInput = document.getElementById('dash-task-nom');
+  const frequenceSelect = document.getElementById('dash-task-frequence');
+  const occasionnelFields = form.querySelectorAll('.dash-task-occasionnel-field');
 
   toggleBtn.addEventListener('click', () => {
     form.hidden = !form.hidden;
     if (!form.hidden) nomInput.focus();
   });
 
-  form.addEventListener('submit', (event) => onAddDashboardTask(event, form, nomInput));
+  frequenceSelect.addEventListener('change', () => {
+    const isOccasionnel = frequenceSelect.value === 'occasionnel';
+    occasionnelFields.forEach((el) => { el.hidden = !isOccasionnel; });
+  });
+
+  form.addEventListener('submit', (event) => onAddDashboardTask(event, form, nomInput, frequenceSelect));
 }
 
-async function onAddDashboardTask(event, form, nomInput) {
+async function onAddDashboardTask(event, form, nomInput, frequenceSelect) {
   event.preventDefault();
   const nom = nomInput.value.trim();
   if (!nom) return;
+
+  const seuilOrangeInput = document.getElementById('dash-task-seuil-orange');
+  const seuilRougeInput = document.getElementById('dash-task-seuil-rouge');
+  const frequence = frequenceSelect.value;
 
   const submitBtn = form.querySelector('button[type="submit"]');
   submitBtn.disabled = true;
@@ -403,18 +422,29 @@ async function onAddDashboardTask(event, form, nomInput) {
       return isNaN(id) ? max : Math.max(max, id);
     }, 0);
 
-    await SheetsAPI.appendRow(CONFIG.SHEETS.MENAGE_TACHES, {
+    const newTask = {
       'ID': maxId + 1,
       'Nom': nom,
-      'Fréquence': 'ponctuel',
+      'Fréquence': frequence,
       'Dernière_fois': '',
       'Assigné_à': '',
       'Statut': 'À faire'
-    });
+    };
+    if (frequence === 'occasionnel') {
+      newTask['Seuil_orange'] = seuilOrangeInput.value.trim();
+      newTask['Seuil_rouge'] = seuilRougeInput.value.trim();
+    }
+
+    await SheetsAPI.appendRow(CONFIG.SHEETS.MENAGE_TACHES, newTask);
 
     nomInput.value = '';
+    frequenceSelect.value = 'ponctuel';
+    seuilOrangeInput.value = '';
+    seuilRougeInput.value = '';
+    seuilOrangeInput.hidden = true;
+    seuilRougeInput.hidden = true;
     form.hidden = true;
-    await renderDashboardTodayTasks();
+    await Promise.all([renderDashboardTodayTasks(), renderDashboardOccasionnelTasks()]);
   } catch (err) {
     console.error(err);
     alert("Impossible d'ajouter cette tâche, réessaie.");
