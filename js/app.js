@@ -248,8 +248,8 @@ async function renderDashboard(container) {
           <option value="hebdo">Hebdo</option>
           <option value="occasionnel">Occasionnel</option>
         </select>
-        <input type="number" id="dash-task-seuil-orange" class="dash-task-occasionnel-field" placeholder="Seuil orange (jours)" min="0" hidden />
-        <input type="number" id="dash-task-seuil-rouge" class="dash-task-occasionnel-field" placeholder="Seuil rouge (jours)" min="0" hidden />
+        <input type="number" id="dash-task-seuil-orange" class="dash-task-occasionnel-field" placeholder="Seuil orange (jours)" min="0" inputmode="numeric" hidden />
+        <input type="number" id="dash-task-seuil-rouge" class="dash-task-occasionnel-field" placeholder="Seuil rouge (jours)" min="0" inputmode="numeric" hidden />
         <button type="submit" class="btn">Ajouter</button>
       </form>
       <div id="dash-today-tasks"><p class="text-muted">Chargement…</p></div>
