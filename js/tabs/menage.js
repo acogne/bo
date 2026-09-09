@@ -23,8 +23,8 @@
           <option value="hebdo">Hebdo</option>
           <option value="occasionnel">Occasionnel</option>
         </select>
-        <input type="number" id="menage-add-seuil-orange" class="menage-add-occasionnel-field" placeholder="Seuil orange (jours)" min="0" hidden />
-        <input type="number" id="menage-add-seuil-rouge" class="menage-add-occasionnel-field" placeholder="Seuil rouge (jours)" min="0" hidden />
+        <input type="number" id="menage-add-seuil-orange" class="menage-add-occasionnel-field" placeholder="Seuil orange (jours)" min="0" inputmode="numeric" hidden />
+        <input type="number" id="menage-add-seuil-rouge" class="menage-add-occasionnel-field" placeholder="Seuil rouge (jours)" min="0" inputmode="numeric" hidden />
         <input type="text" id="menage-add-assigne" placeholder="Assigné à (optionnel)" />
         <button type="submit" class="btn">Ajouter</button>
       </form>
