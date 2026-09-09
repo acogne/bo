@@ -90,20 +90,26 @@ const VehiculeTab = (() => {
 
   // Rend les chips "à faire" dans listEl ; renvoie la liste des rappels
   // encore en attente (utilisé par la home pour masquer la carte si vide).
-  async function renderPending(listEl, now = new Date()) {
+  // cardEl est optionnel (fourni seulement depuis la home) : quand il est
+  // là, cette fonction se charge elle-même de le montrer/cacher — y compris
+  // lors du re-rendu après avoir coché un chip directement depuis la home,
+  // pas seulement au premier chargement via renderDashboardCard.
+  async function renderPending(listEl, now = new Date(), cardEl = null) {
     try {
       const pending = await getPendingReminders(now);
 
       if (pending.length === 0) {
         listEl.innerHTML = '<p class="text-muted">Entretiens saisonniers à jour 🎉</p>';
+        if (cardEl) cardEl.hidden = true;
         return pending;
       }
 
       listEl.innerHTML = '';
       const chipsWrap = document.createElement('div');
       chipsWrap.className = 'task-chips';
-      pending.forEach((reminder) => chipsWrap.appendChild(renderChip(reminder, listEl)));
+      pending.forEach((reminder) => chipsWrap.appendChild(renderChip(reminder, listEl, cardEl)));
       listEl.appendChild(chipsWrap);
+      if (cardEl) cardEl.hidden = false;
       return pending;
     } catch (err) {
       console.error(err);
@@ -112,7 +118,7 @@ const VehiculeTab = (() => {
     }
   }
 
-  function renderChip(reminder, listEl) {
+  function renderChip(reminder, listEl, cardEl) {
     const chip = document.createElement('button');
     chip.type = 'button';
     chip.className = 'task-chip accent-vehicule';
@@ -123,11 +129,11 @@ const VehiculeTab = (() => {
         <span class="task-chip-meta">Rappel annuel</span>
       </span>
     `;
-    chip.addEventListener('click', () => onCheck(chip, reminder, listEl));
+    chip.addEventListener('click', () => onCheck(chip, reminder, listEl, cardEl));
     return chip;
   }
 
-  async function onCheck(chip, reminder, listEl) {
+  async function onCheck(chip, reminder, listEl, cardEl) {
     if (chip.classList.contains('task-chip--busy')) return;
     chip.classList.add('task-chip--busy', 'task-chip--done');
     Confetti.burst();
@@ -136,7 +142,7 @@ const VehiculeTab = (() => {
       await markDone(reminder);
       setTimeout(() => {
         chip.classList.add('task-chip--exit');
-        setTimeout(() => renderPending(listEl), 300);
+        setTimeout(() => renderPending(listEl, new Date(), cardEl), 300);
       }, 500);
     } catch (err) {
       console.error(err);
@@ -270,8 +276,7 @@ const VehiculeTab = (() => {
   // ---------- Carte homepage ----------
 
   async function renderDashboardCard(cardEl, listEl) {
-    const pending = await renderPending(listEl);
-    cardEl.hidden = pending.length === 0;
+    return renderPending(listEl, new Date(), cardEl);
   }
 
   // ---------- Utilitaires ----------
