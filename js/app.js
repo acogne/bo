@@ -552,7 +552,7 @@ async function renderDashboardTodayRepas() {
       .sort((a, b) => repasOrderIndex(a['Repas']) - repasOrderIndex(b['Repas']));
 
     el.innerHTML = todayRepas
-      .map((r) => `<p class="text-muted">${escapeHtml(r['Repas'] || '')} : <strong>${escapeHtml(r['Plat'] || '')}</strong></p>`)
+      .map((r) => `<p class="text-muted">${escapeHtml(r['Repas'] || '')} : <strong>${platHtml(r)}</strong></p>`)
       .join('');
   } catch (err) {
     console.error(err);
@@ -970,6 +970,25 @@ function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = String(str);
   return div.innerHTML;
+}
+
+// Utilisé pour les valeurs insérées dans un attribut (href) — escapeHtml
+// seul ne protège pas les guillemets hors contexte texte.
+function escapeAttr(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+// Même logique que repas.js: plat cliquable si une URL_recette valide
+// (http/https) est renseignée, sinon texte simple.
+function platHtml(r) {
+  const plat = escapeHtml(r['Plat'] || '');
+  const url = (r['URL_recette'] || '').trim();
+  if (!url || !/^https?:\/\//i.test(url)) return plat;
+  return `<a href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer">${plat}</a>`;
 }
 
 async function renderDashboardCompteurs() {

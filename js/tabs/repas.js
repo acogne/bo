@@ -1,5 +1,5 @@
 // Onglet Repas : planning des repas (ID, Jour, Repas, Plat, Ingrédients_clés,
-// Prévu_par, Semaine). La colonne Semaine (numéro de semaine ISO, même
+// Prévu_par, Semaine, URL_recette). La colonne Semaine (numéro de semaine ISO, même
 // convention que Ménage_rotation) distingue "cette semaine" de "semaine +1" :
 // sans elle, remplir le planning de la semaine prochaine un samedi écrasait le
 // menu du samedi en cours, puisque le seul identifiant d'un créneau était
@@ -54,6 +54,7 @@
         </select>
         <input type="text" id="repas-add-plat" placeholder="Plat (ex. Gratin de légumes)" required />
         <input type="text" id="repas-add-ingredients" placeholder="Ingrédients clés (optionnel)" />
+        <input type="url" id="repas-add-url" placeholder="Lien de la recette (optionnel)" />
         <input type="text" id="repas-add-prevupar" placeholder="Prévu par" />
         <button type="submit" class="btn">Enregistrer</button>
       </form>
@@ -94,7 +95,7 @@
         if (r['Ingrédients_clés']) metaParts.push(r['Ingrédients_clés']);
         if (r['Prévu_par']) metaParts.push(`prévu par ${r['Prévu_par']}`);
         row.innerHTML = `
-          <div class="info-row-title">${escapeHtml(r['Repas'] || '')} — ${escapeHtml(r['Plat'] || '')}</div>
+          <div class="info-row-title">${escapeHtml(r['Repas'] || '')} — ${platHtml(r)}</div>
           <div class="info-row-meta">${escapeHtml(metaParts.join(' · '))}</div>
         `;
         wrap.appendChild(row);
@@ -145,6 +146,7 @@
     const repasSelect = container.querySelector('#repas-add-repas');
     const platInput = container.querySelector('#repas-add-plat');
     const ingredientsInput = container.querySelector('#repas-add-ingredients');
+    const urlInput = container.querySelector('#repas-add-url');
     const prevuParInput = container.querySelector('#repas-add-prevupar');
 
     const plat = platInput.value.trim();
@@ -172,7 +174,8 @@
           'Plat': plat,
           'Ingrédients_clés': ingredientsInput.value.trim(),
           'Prévu_par': prevuParInput.value.trim(),
-          'Semaine': String(targetWeek)
+          'Semaine': String(targetWeek),
+          'URL_recette': urlInput.value.trim()
         });
       } else {
         const maxId = rows.reduce((max, r) => {
@@ -187,12 +190,14 @@
           'Plat': plat,
           'Ingrédients_clés': ingredientsInput.value.trim(),
           'Prévu_par': prevuParInput.value.trim(),
-          'Semaine': String(targetWeek)
+          'Semaine': String(targetWeek),
+          'URL_recette': urlInput.value.trim()
         });
       }
 
       platInput.value = '';
       ingredientsInput.value = '';
+      urlInput.value = '';
 
       await renderList(container);
     } catch (err) {
@@ -203,10 +208,31 @@
     }
   }
 
+  // Rend le plat cliquable (ouvre la recette dans un nouvel onglet) quand une
+  // URL est renseignée ; sinon reste du texte simple comme avant cette
+  // fonctionnalité. N'accepte que http(s) pour éviter d'insérer un href
+  // javascript: à partir d'une valeur saisie par l'utilisateur.
+  function platHtml(r) {
+    const plat = escapeHtml(r['Plat'] || '');
+    const url = (r['URL_recette'] || '').trim();
+    if (!url || !/^https?:\/\//i.test(url)) return plat;
+    return `<a href="${escapeAttr(url)}" target="_blank" rel="noopener noreferrer">${plat}</a>`;
+  }
+
   function escapeHtml(str) {
     const div = document.createElement('div');
     div.textContent = String(str);
     return div.innerHTML;
+  }
+
+  // Utilisé pour les valeurs insérées dans un attribut (href) — escapeHtml
+  // seul ne protège pas les guillemets hors contexte texte.
+  function escapeAttr(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
   }
 
   TabRegistry.register('repas', { title: 'Repas', accent: '', render });
