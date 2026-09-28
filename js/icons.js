@@ -36,7 +36,9 @@ const Icons = (() => {
 
     compteurs: `<svg viewBox="0 0 24 24" ${STROKE}><path d="M4 15a8 8 0 0 1 16 0"/><path d="M12 15 15.5 10.5"/><circle cx="12" cy="15" r="1.2" fill="currentColor" stroke="none"/></svg>`,
 
-    chevron: `<svg viewBox="0 0 24 24" ${STROKE}><path d="M7 9.5 12 14.5 17 9.5"/></svg>`
+    chevron: `<svg viewBox="0 0 24 24" ${STROKE}><path d="M7 9.5 12 14.5 17 9.5"/></svg>`,
+
+    supprimer: `<svg viewBox="0 0 24 24" ${STROKE}><path d="M5 7h14"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M7 7l1 12a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2l1-12"/><path d="M10 11v6M14 11v6"/></svg>`
   };
 
   function svg(key) {

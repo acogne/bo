@@ -91,6 +91,49 @@ const SheetsAPI = (() => {
     });
   }
 
+  // sheetId (gid) de chaque onglet, mis en cache — nécessaire pour deleteRows
+  // (l'API de suppression de lignes travaille sur l'ID numérique de l'onglet,
+  // pas son nom).
+  const sheetIdCache = {};
+  async function getSheetId(sheetName) {
+    if (sheetIdCache[sheetName] !== undefined) return sheetIdCache[sheetName];
+    const url = `${BASE_URL}/${CONFIG.SHEET_ID}?fields=sheets.properties`;
+    const data = await apiFetch(url);
+    const sheet = (data.sheets || []).find((s) => s.properties.title === sheetName);
+    if (!sheet) {
+      throw new Error(`Onglet "${sheetName}" introuvable dans le Sheet.`);
+    }
+    sheetIdCache[sheetName] = sheet.properties.sheetId;
+    return sheet.properties.sheetId;
+  }
+
+  // Supprime des lignes (numéros 1-based du Sheet, via _rowIndex). Les indices
+  // sont traités du plus grand au plus petit dans un seul batchUpdate pour que
+  // la suppression d'une ligne ne décale pas les indices des suivantes.
+  async function deleteRows(sheetName, rowIndexes) {
+    if (!rowIndexes || rowIndexes.length === 0) return;
+    const sheetId = await getSheetId(sheetName);
+    const sorted = [...new Set(rowIndexes)].sort((a, b) => b - a);
+
+    const requests = sorted.map((rowIndex) => ({
+      deleteDimension: {
+        range: {
+          sheetId,
+          dimension: 'ROWS',
+          startIndex: rowIndex - 1,
+          endIndex: rowIndex
+        }
+      }
+    }));
+
+    const url = `${BASE_URL}/${CONFIG.SHEET_ID}:batchUpdate`;
+    return apiFetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requests })
+    });
+  }
+
   // Met à jour une seule cellule identifiée par nom de colonne + numéro de ligne.
   async function updateCell(sheetName, rowIndex, columnName, value) {
     const { headers } = await getRows(sheetName);
@@ -108,5 +151,5 @@ const SheetsAPI = (() => {
     });
   }
 
-  return { getRows, appendRow, updateRow, updateCell };
+  return { getRows, appendRow, updateRow, updateCell, deleteRows };
 })();

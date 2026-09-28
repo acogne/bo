@@ -69,7 +69,7 @@
     await renderList(container);
   }
 
-  function renderJourGroups(container, repasRows) {
+  function renderJourGroups(container, repasRows, rootContainer) {
     const byJour = new Map();
     repasRows.forEach((r) => {
       const jour = r['Jour'] || 'Autre';
@@ -90,14 +90,18 @@
       wrap.className = 'info-rows';
       repas.forEach((r) => {
         const row = document.createElement('div');
-        row.className = 'info-row';
+        row.className = 'info-row info-row--with-actions';
         const metaParts = [];
         if (r['Ingrédients_clés']) metaParts.push(r['Ingrédients_clés']);
         if (r['Prévu_par']) metaParts.push(`prévu par ${r['Prévu_par']}`);
         row.innerHTML = `
-          <div class="info-row-title">${escapeHtml(r['Repas'] || '')} — ${platHtml(r)}</div>
-          <div class="info-row-meta">${escapeHtml(metaParts.join(' · '))}</div>
+          <div class="info-row-main">
+            <div class="info-row-title">${escapeHtml(r['Repas'] || '')} — ${platHtml(r)}</div>
+            <div class="info-row-meta">${escapeHtml(metaParts.join(' · '))}</div>
+          </div>
+          <button type="button" class="info-row-delete" aria-label="Supprimer ce repas">${Icons.svg('supprimer')}</button>
         `;
+        row.querySelector('.info-row-delete').addEventListener('click', () => onDeleteRepas(r, rootContainer));
         wrap.appendChild(row);
       });
 
@@ -126,7 +130,7 @@
         const section = document.createElement('div');
         section.className = 'task-week-section';
         section.innerHTML = `<h3 class="task-week-title">${escapeHtml(label)}</h3>`;
-        renderJourGroups(section, bucketRows);
+        renderJourGroups(section, bucketRows, container);
         listEl.appendChild(section);
       });
 
@@ -136,6 +140,62 @@
     } catch (err) {
       console.error(err);
       listEl.innerHTML = '<p class="text-muted">Impossible de charger le planning.</p>';
+    }
+  }
+
+  // Supprime dans Courses toutes les lignes générées pour ce repas
+  // (Origine_Repas_ID correspondant), qu'un nouvel ingrédient soit recréé
+  // ensuite ou non.
+  async function deleteCoursesForRepas(repasId) {
+    const { rows } = await SheetsAPI.getRows(CONFIG.SHEETS.COURSES);
+    const matching = rows.filter((r) => String(r['Origine_Repas_ID'] || '').trim() === String(repasId));
+    if (matching.length > 0) {
+      await SheetsAPI.deleteRows(CONFIG.SHEETS.COURSES, matching.map((r) => r._rowIndex));
+    }
+  }
+
+  // Recrée la liste Courses générée pour ce repas à partir d'Ingrédients_clés
+  // (une ligne Courses par ingrédient, virgule = séparateur). Repart toujours
+  // de zéro (supprime l'ancienne génération) pour rester cohérent si la liste
+  // d'ingrédients a changé entre deux enregistrements du repas.
+  async function syncCoursesFromRepas(repasId, ingredientsText) {
+    await deleteCoursesForRepas(repasId);
+
+    const ingredients = ingredientsText.split(',').map((s) => s.trim()).filter(Boolean);
+    if (ingredients.length === 0) return;
+
+    const { rows } = await SheetsAPI.getRows(CONFIG.SHEETS.COURSES);
+    let nextId = rows.reduce((max, r) => {
+      const id = parseInt(r['ID'], 10);
+      return isNaN(id) ? max : Math.max(max, id);
+    }, 0);
+
+    for (const article of ingredients) {
+      nextId += 1;
+      await SheetsAPI.appendRow(CONFIG.SHEETS.COURSES, {
+        'ID': nextId,
+        'Article': article,
+        'Quantité': '',
+        'Unité': '',
+        'Catégorie': 'Autre',
+        'Ajouté_par': 'Auto (menu)',
+        'Acheté': 'Non',
+        'Origine_Repas_ID': String(repasId)
+      });
+    }
+  }
+
+  async function onDeleteRepas(r, container) {
+    const label = [r['Repas'], r['Plat']].filter(Boolean).join(' — ');
+    if (!confirm(`Supprimer "${label || 'ce repas'}" ?`)) return;
+
+    try {
+      await SheetsAPI.deleteRows(SHEET, [r._rowIndex]);
+      await deleteCoursesForRepas(r['ID']);
+      await renderList(container);
+    } catch (err) {
+      console.error(err);
+      alert('Impossible de supprimer ce repas, réessaie.');
     }
   }
 
@@ -159,6 +219,8 @@
     const submitBtn = e.target.querySelector('button[type="submit"]');
     submitBtn.disabled = true;
 
+    const ingredientsValue = ingredientsInput.value.trim();
+
     try {
       const { rows } = await SheetsAPI.getRows(SHEET);
       const existing = rows.find(
@@ -168,11 +230,13 @@
           rowMatchesWeek(r, currentWeek, offset)
       );
 
+      let repasId;
       if (existing) {
+        repasId = existing['ID'];
         await SheetsAPI.updateRow(SHEET, existing._rowIndex, {
           ...existing,
           'Plat': plat,
-          'Ingrédients_clés': ingredientsInput.value.trim(),
+          'Ingrédients_clés': ingredientsValue,
           'Prévu_par': prevuParInput.value.trim(),
           'Semaine': String(targetWeek),
           'URL_recette': urlInput.value.trim()
@@ -182,17 +246,22 @@
           const id = parseInt(r['ID'], 10);
           return isNaN(id) ? max : Math.max(max, id);
         }, 0);
+        repasId = maxId + 1;
 
         await SheetsAPI.appendRow(SHEET, {
-          'ID': maxId + 1,
+          'ID': repasId,
           'Jour': jourSelect.value,
           'Repas': repasSelect.value,
           'Plat': plat,
-          'Ingrédients_clés': ingredientsInput.value.trim(),
+          'Ingrédients_clés': ingredientsValue,
           'Prévu_par': prevuParInput.value.trim(),
           'Semaine': String(targetWeek),
           'URL_recette': urlInput.value.trim()
         });
+      }
+
+      if (ingredientsValue) {
+        await syncCoursesFromRepas(repasId, ingredientsValue);
       }
 
       platInput.value = '';

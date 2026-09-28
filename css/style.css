@@ -919,6 +919,41 @@ details[open] > .dash-card-summary::after {
   margin-top: 2px;
 }
 
+.info-row--with-actions {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.info-row-main {
+  min-width: 0;
+}
+
+.info-row-delete {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  padding: 0;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.info-row-delete svg {
+  width: 16px;
+  height: 16px;
+}
+
+.info-row-delete:hover {
+  color: #d64545;
+}
+
 /* ---------- Dossier maladie (Suivi santé, onglet Enfant) ---------- */
 
 #enfant-suivi-content {
