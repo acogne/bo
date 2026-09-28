@@ -66,22 +66,35 @@
       <section class="tab-header accent-courses">
         <h2>Courses</h2>
       </section>
+      <section class="card dash-card accent-courses">
+        <div class="dash-card-header">
+          <h3>Ajouter un article</h3>
+          <button type="button" id="courses-add-toggle" class="btn-add-icon" aria-label="Ajouter un article">+</button>
+        </div>
+        <form id="courses-add-form" class="quick-add-form" hidden>
+          <input type="text" id="courses-add-article" placeholder="Article" required />
+          <input type="text" id="courses-add-quantite" placeholder="Quantité (ex. 2)" />
+          <input type="text" id="courses-add-unite" placeholder="Unité (ex. kg, L, pièce)" />
+          <select id="courses-add-categorie">
+            <option value="">Catégorie…</option>
+            ${categoryOptions()}
+          </select>
+          <button type="submit" class="btn">Ajouter</button>
+        </form>
+      </section>
       <section id="courses-list" class="task-list">
         <p class="text-muted">Chargement des articles…</p>
       </section>
-      <form id="courses-add-form" class="quick-add-form">
-        <input type="text" id="courses-add-article" placeholder="Article" required />
-        <input type="text" id="courses-add-quantite" placeholder="Quantité (ex. 2)" />
-        <input type="text" id="courses-add-unite" placeholder="Unité (ex. kg, L, pièce)" />
-        <select id="courses-add-categorie">
-          <option value="">Catégorie…</option>
-          ${categoryOptions()}
-        </select>
-        <button type="submit" class="btn">Ajouter</button>
-      </form>
     `;
 
-    container.querySelector('#courses-add-form').addEventListener('submit', (e) => onAddItem(e, container));
+    const toggleBtn = container.querySelector('#courses-add-toggle');
+    const form = container.querySelector('#courses-add-form');
+    const articleInput = container.querySelector('#courses-add-article');
+    toggleBtn.addEventListener('click', () => {
+      form.hidden = !form.hidden;
+      if (!form.hidden) articleInput.focus();
+    });
+    form.addEventListener('submit', (e) => onAddItem(e, container));
 
     await renderList(container);
   }
@@ -303,6 +316,7 @@
       quantiteInput.value = '';
       uniteInput.value = '';
       categorieInput.value = '';
+      e.target.hidden = true;
 
       await renderList(container);
     } catch (err) {

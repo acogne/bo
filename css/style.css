@@ -417,7 +417,7 @@ details[open] > .dash-card-summary::after {
   height: 28px;
   border: none;
   border-radius: 50%;
-  background: var(--accent-menage);
+  background: var(--chip-accent, var(--accent-menage));
   color: #fff;
   font-size: 18px;
   font-weight: 800;
