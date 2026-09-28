@@ -59,17 +59,19 @@ const EnfantBibliothequeTab = (() => {
   }
 
   function renderChip(r, container) {
-    const chip = document.createElement('button');
-    chip.type = 'button';
+    const chip = document.createElement('div');
     chip.className = 'task-chip accent-enfant';
+    chip.dataset.rowIndex = r._rowIndex;
+
     chip.innerHTML = `
-      <span class="task-chip-check" aria-hidden="true"></span>
-      <span class="task-chip-body">
+      <button type="button" class="task-chip-check" aria-label="Marquer comme rendu"></button>
+      <button type="button" class="task-chip-body">
         <span class="task-chip-name"><span class="task-chip-icon">${Icons.svg('enfant')}</span>${escapeHtml(r['Titre'] || '')}</span>
         <span class="task-chip-meta">${escapeHtml(formatMeta(r))}</span>
-      </span>
+      </button>
     `;
-    chip.addEventListener('click', () => onCheck(chip, r, container));
+    chip.querySelector('.task-chip-check').addEventListener('click', () => onCheck(chip, r, container));
+    chip.querySelector('.task-chip-body').addEventListener('click', () => onEditItem(chip, r, container));
     return chip;
   }
 
@@ -95,6 +97,55 @@ const EnfantBibliothequeTab = (() => {
       console.error(err);
       chip.classList.remove('task-chip--busy', 'task-chip--done');
       alert("Impossible d'enregistrer ce retour, réessaie.");
+    }
+  }
+
+  function onEditItem(chip, r, container) {
+    if (chip.classList.contains('task-chip--editing')) return;
+    chip.classList.add('task-chip--editing');
+
+    chip.innerHTML = `
+      <form class="task-chip-edit-form">
+        <input type="text" class="task-chip-edit-titre" placeholder="Titre" value="${escapeAttr(r['Titre'] || '')}" required />
+        <label class="field-label" for="task-chip-edit-emprunt-${r._rowIndex}">Date d'emprunt</label>
+        <input type="date" id="task-chip-edit-emprunt-${r._rowIndex}" class="task-chip-edit-emprunt" value="${escapeAttr(r['Date_emprunt'] || '')}" required />
+        <label class="field-label" for="task-chip-edit-retour-${r._rowIndex}">Date de retour</label>
+        <input type="date" id="task-chip-edit-retour-${r._rowIndex}" class="task-chip-edit-retour" value="${escapeAttr(r['Date_retour'] || '')}" required />
+        <div class="task-chip-edit-actions">
+          <button type="submit" class="btn">Enregistrer</button>
+          <button type="button" class="btn btn-secondary task-chip-edit-cancel">Annuler</button>
+        </div>
+      </form>
+    `;
+
+    const form = chip.querySelector('.task-chip-edit-form');
+    form.querySelector('.task-chip-edit-cancel').addEventListener('click', () => renderList(container));
+    form.addEventListener('submit', (e) => onSaveEdit(e, r, container));
+  }
+
+  async function onSaveEdit(e, r, container) {
+    e.preventDefault();
+    const form = e.target;
+    const titre = form.querySelector('.task-chip-edit-titre').value.trim();
+    const dateEmprunt = form.querySelector('.task-chip-edit-emprunt').value;
+    const dateRetour = form.querySelector('.task-chip-edit-retour').value;
+    if (!titre || !dateEmprunt || !dateRetour) return;
+
+    const saveBtn = form.querySelector('button[type="submit"]');
+    saveBtn.disabled = true;
+
+    try {
+      await SheetsAPI.updateRow(SHEET, r._rowIndex, {
+        ...r,
+        'Titre': titre,
+        'Date_emprunt': dateEmprunt,
+        'Date_retour': dateRetour
+      });
+      await renderList(container);
+    } catch (err) {
+      console.error(err);
+      alert("Impossible d'enregistrer les modifications, réessaie.");
+      saveBtn.disabled = false;
     }
   }
 
@@ -179,6 +230,10 @@ const EnfantBibliothequeTab = (() => {
     const div = document.createElement('div');
     div.textContent = String(str);
     return div.innerHTML;
+  }
+
+  function escapeAttr(str) {
+    return escapeHtml(str).replace(/"/g, '&quot;');
   }
 
   TabRegistry.register('enfant-bibliotheque', { title: 'Bibliothèque', accent: 'enfant', render });
