@@ -38,7 +38,9 @@ const Icons = (() => {
 
     chevron: `<svg viewBox="0 0 24 24" ${STROKE}><path d="M7 9.5 12 14.5 17 9.5"/></svg>`,
 
-    supprimer: `<svg viewBox="0 0 24 24" ${STROKE}><path d="M5 7h14"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M7 7l1 12a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2l1-12"/><path d="M10 11v6M14 11v6"/></svg>`
+    supprimer: `<svg viewBox="0 0 24 24" ${STROKE}><path d="M5 7h14"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M7 7l1 12a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2l1-12"/><path d="M10 11v6M14 11v6"/></svg>`,
+
+    livre: `<svg viewBox="0 0 24 24" ${STROKE}><path d="M12 6.5c-2.2-1.4-5.2-1.6-8-1v13c2.8-.6 5.8-.4 8 1"/><path d="M12 6.5c2.2-1.4 5.2-1.6 8-1v13c-2.8-.6-5.8-.4-8 1v-13Z"/></svg>`
   };
 
   function svg(key) {

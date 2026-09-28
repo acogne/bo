@@ -66,7 +66,7 @@ const EnfantBibliothequeTab = (() => {
     chip.innerHTML = `
       <button type="button" class="task-chip-check" aria-label="Marquer comme rendu"></button>
       <button type="button" class="task-chip-body">
-        <span class="task-chip-name"><span class="task-chip-icon">${Icons.svg('enfant')}</span>${escapeHtml(r['Titre'] || '')}</span>
+        <span class="task-chip-name"><span class="task-chip-icon">${Icons.svg('livre')}</span>${escapeHtml(r['Titre'] || '')}</span>
         <span class="task-chip-meta">${escapeHtml(formatMeta(r))}</span>
       </button>
     `;

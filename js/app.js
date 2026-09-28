@@ -1037,16 +1037,18 @@ function renderDashboardTaskList(el, items, emptyText) {
 }
 
 const DASHBOARD_TASK_DOMAIN_BY_TYPE = { medicament: 'chat', bibliotheque: 'enfant' };
+const DASHBOARD_TASK_ICON_BY_TYPE = { bibliotheque: 'livre' };
 
 function renderDashboardTaskChip(item, emptyText) {
   const domain = DASHBOARD_TASK_DOMAIN_BY_TYPE[item.type] || 'menage';
+  const iconKey = DASHBOARD_TASK_ICON_BY_TYPE[item.type] || domain;
   const chip = document.createElement('button');
   chip.type = 'button';
   chip.className = `task-chip accent-${domain}`;
   chip.innerHTML = `
     <span class="task-chip-check" aria-hidden="true"></span>
     <span class="task-chip-body">
-      <span class="task-chip-name"><span class="task-chip-icon">${Icons.svg(domain)}</span>${escapeHtml(item.label)}</span>
+      <span class="task-chip-name"><span class="task-chip-icon">${Icons.svg(iconKey)}</span>${escapeHtml(item.label)}</span>
     </span>
   `;
   chip.addEventListener('click', () => onDashboardTaskDone(chip, item, emptyText));
