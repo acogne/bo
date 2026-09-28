@@ -513,50 +513,67 @@ async function renderDashboardTodayAgenda() {
   }
 }
 
+const GENEVA_TZ = 'Europe/Zurich';
+
 // Combine le planning type (Enfant_Garde_Hebdo, par jour de semaine) avec la
 // rotation (Enfant_Garde_Rotation, par numéro de semaine) : quand une case du
 // planning type vaut "Alternant", on la remplace par la valeur Lieu_alternant
 // de la semaine en cours.
+// Dès 18h (heure de Genève, indépendamment du fuseau de l'appareil), le
+// schéma du lendemain s'affiche en plus de celui du jour — pour préparer la
+// garde du lendemain en fin de journée. Minuit fait retomber l'affichage sur
+// le seul jour courant jusqu'au prochain 18h.
 async function renderDashboardTodayGarde() {
   const el = document.getElementById('dash-today-garde');
   try {
-    const now = new Date();
-    const todayName = FR_DAYS[now.getDay()];
+    const { date: today, hour } = DateUtils.zonedNow(GENEVA_TZ);
 
     const [hebdoRes, rotationRes] = await Promise.all([
       SheetsAPI.getRows(CONFIG.SHEETS.ENFANT_GARDE_HEBDO),
       SheetsAPI.getRows(CONFIG.SHEETS.ENFANT_GARDE_ROTATION)
     ]);
 
-    const hebdoRow = hebdoRes.rows.find((r) => (r['Jour'] || '').trim() === todayName);
-    if (!hebdoRow) {
-      el.innerHTML = '';
-      return;
+    const blocks = [];
+    const todayBlock = buildGardeBlock(today, hebdoRes.rows, rotationRes.rows, 'Garde');
+    if (todayBlock) blocks.push(todayBlock);
+
+    if (hour >= 18) {
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowBlock = buildGardeBlock(tomorrow, hebdoRes.rows, rotationRes.rows, 'Demain');
+      if (tomorrowBlock) blocks.push(tomorrowBlock);
     }
 
-    const currentWeek = DateUtils.isoWeekNumber(now);
-    const rotationRow = rotationRes.rows.find((r) => DateUtils.parseWeekNumber(r['Semaine']) === currentWeek);
-    const alternantValue = (rotationRow && rotationRow['Lieu_alternant']) || '';
-
-    const resolve = (value) => {
-      const v = (value || '').trim();
-      return /^alternant$/i.test(v) ? (alternantValue || v) : v;
-    };
-
-    const matin = resolve(hebdoRow['Matin']);
-    const apresMidi = resolve(hebdoRow['Après-midi_type']);
-    const parts = [
-      matin ? `Matin : <strong>${escapeHtml(matin)}</strong>` : null,
-      apresMidi ? `Après-midi : <strong>${escapeHtml(apresMidi)}</strong>` : null
-    ].filter(Boolean);
-
-    el.innerHTML = parts.length
-      ? `<p class="text-muted">Garde — ${parts.join(' · ')}</p>`
-      : '';
+    el.innerHTML = blocks.join('');
   } catch (err) {
     console.error(err);
     el.innerHTML = '<p class="text-muted">Impossible de charger la garde du jour.</p>';
   }
+}
+
+function buildGardeBlock(date, hebdoRows, rotationRows, label) {
+  const dayName = FR_DAYS[date.getDay()];
+  const hebdoRow = hebdoRows.find((r) => (r['Jour'] || '').trim() === dayName);
+  if (!hebdoRow) return null;
+
+  const weekNum = DateUtils.isoWeekNumber(date);
+  const rotationRow = rotationRows.find((r) => DateUtils.parseWeekNumber(r['Semaine']) === weekNum);
+  const alternantValue = (rotationRow && rotationRow['Lieu_alternant']) || '';
+
+  const resolve = (value) => {
+    const v = (value || '').trim();
+    return /^alternant$/i.test(v) ? (alternantValue || v) : v;
+  };
+
+  const matin = resolve(hebdoRow['Matin']);
+  const apresMidi = resolve(hebdoRow['Après-midi_type']);
+  const parts = [
+    matin ? `Matin : <strong>${escapeHtml(matin)}</strong>` : null,
+    apresMidi ? `Après-midi : <strong>${escapeHtml(apresMidi)}</strong>` : null
+  ].filter(Boolean);
+
+  if (parts.length === 0) return null;
+  return `<p class="text-muted">${escapeHtml(label)} — ${parts.join(' · ')}</p>`;
 }
 
 async function renderDashboardTodayRepas() {

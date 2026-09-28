@@ -48,5 +48,28 @@ const DateUtils = (() => {
     return isNaN(d.getTime()) ? null : d;
   }
 
-  return { startOfWeekMonday, isSameDay, isoWeekNumber, parseWeekNumber, toISODate, parseDate };
+  // Heure/jour "muraux" dans un fuseau donné, indépendamment du fuseau de
+  // l'appareil (utile pour un foyer basé à Genève consulté depuis ailleurs).
+  // `date` reste un objet Date à minuit local représentant ce jour civil —
+  // utilisable tel quel avec getDay()/isoWeekNumber() comme le "now" habituel.
+  function zonedNow(timeZone, instant = new Date()) {
+    const dtf = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit',
+      hour12: false
+    });
+    const parts = dtf.formatToParts(instant).reduce((acc, p) => {
+      acc[p.type] = p.value;
+      return acc;
+    }, {});
+    const hour = parts.hour === '24' ? 0 : parseInt(parts.hour, 10);
+    return {
+      date: new Date(parseInt(parts.year, 10), parseInt(parts.month, 10) - 1, parseInt(parts.day, 10)),
+      hour,
+      minute: parseInt(parts.minute, 10)
+    };
+  }
+
+  return { startOfWeekMonday, isSameDay, isoWeekNumber, parseWeekNumber, toISODate, parseDate, zonedNow };
 })();
