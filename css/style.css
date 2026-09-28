@@ -760,6 +760,8 @@ details[open] > .dash-card-summary::after {
 
 .weekend-group + .weekend-group {
   margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--input-border);
 }
 
 .weekend-group-title {
