@@ -21,7 +21,9 @@ const CONFIG = {
     'https://www.googleapis.com/auth/calendar.events'
   ].join(' '),
 
-  // Noms exacts des onglets du Google Sheet (22 onglets déjà créés et remplis).
+  // Noms exacts des onglets du Google Sheet (23 onglets — Enfant_Bibliotheque
+  // reste à créer manuellement dans le Sheet : colonnes ID, Titre,
+  // Date_emprunt, Date_retour, Statut).
   SHEETS: {
     CITATIONS: 'Citations',
     MENAGE_TACHES: 'Ménage_Taches',
@@ -37,6 +39,7 @@ const CONFIG = {
     ENFANT_SUIVI_MALADIE: 'Enfant_Suivi_Maladie',
     ENFANT_MALADIE_EPISODES: 'Enfant_Maladie_Episodes',
     ENFANT_PROFIL: 'Enfant_Profil',
+    ENFANT_BIBLIOTHEQUE: 'Enfant_Bibliotheque',
     CHAT_EVENEMENTS: 'Chat_Evenements',
     CHAT_ACHATS: 'Chat_Achats',
     CHAT_MEDICAMENTS: 'Chat_Medicaments',

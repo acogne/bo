@@ -904,9 +904,10 @@ async function renderDashboardTodayTasks() {
   const weeklyEl = document.getElementById('dash-week-tasks');
   try {
     const now = new Date();
-    const [menageRes, dueMedicaments] = await Promise.all([
+    const [menageRes, dueMedicaments, booksByUrgency] = await Promise.all([
       SheetsAPI.getRows(CONFIG.SHEETS.MENAGE_TACHES),
-      ChatTab.getDueMedicaments(now)
+      ChatTab.getDueMedicaments(now),
+      EnfantBibliothequeTab.getBooksByUrgency(now)
     ]);
 
     const visibleTasks = menageRes.rows.filter((t) => TaskReset.isVisible(t, now));
@@ -930,11 +931,13 @@ async function renderDashboardTodayTasks() {
       ...dailyTasks.map((t) => ({ type: 'menage', task: t, label: t['Nom'] || '' })),
       ...ponctuelTasks.map((t) => ({ type: 'menage', task: t, label: t['Nom'] || '' })),
       ...redOccasionnel.map((t) => ({ type: 'menage', task: t, label: t['Nom'] || '' })),
-      ...dueMedicaments.map((m) => ({ type: 'medicament', task: m, label: ChatTab.formatMedicamentLabel(m) }))
+      ...dueMedicaments.map((m) => ({ type: 'medicament', task: m, label: ChatTab.formatMedicamentLabel(m) })),
+      ...booksByUrgency.due.map((b) => ({ type: 'bibliotheque', task: b, label: EnfantBibliothequeTab.formatBookLabel(b) }))
     ];
     const weeklyItems = [
       ...weeklyTasks.map((t) => ({ type: 'menage', task: t, label: t['Nom'] || '' })),
-      ...orangeOccasionnel.map((t) => ({ type: 'menage', task: t, label: t['Nom'] || '' }))
+      ...orangeOccasionnel.map((t) => ({ type: 'menage', task: t, label: t['Nom'] || '' })),
+      ...booksByUrgency.upcoming.map((b) => ({ type: 'bibliotheque', task: b, label: EnfantBibliothequeTab.formatBookLabel(b) }))
     ];
 
     renderDashboardTaskList(dailyEl, dailyItems, "Rien à faire aujourd'hui 🎉");
@@ -1033,8 +1036,10 @@ function renderDashboardTaskList(el, items, emptyText) {
   el.appendChild(chipsWrap);
 }
 
+const DASHBOARD_TASK_DOMAIN_BY_TYPE = { medicament: 'chat', bibliotheque: 'enfant' };
+
 function renderDashboardTaskChip(item, emptyText) {
-  const domain = item.type === 'medicament' ? 'chat' : 'menage';
+  const domain = DASHBOARD_TASK_DOMAIN_BY_TYPE[item.type] || 'menage';
   const chip = document.createElement('button');
   chip.type = 'button';
   chip.className = `task-chip accent-${domain}`;
@@ -1064,8 +1069,10 @@ async function onDashboardTaskDone(chip, item, emptyText) {
       if ((item.task['Fréquence'] || '').trim().toLowerCase() === 'occasionnel') {
         renderDashboardOccasionnelTasks();
       }
-    } else {
+    } else if (item.type === 'medicament') {
       await ChatTab.markMedicamentDone(item.task);
+    } else if (item.type === 'bibliotheque') {
+      await EnfantBibliothequeTab.markBookReturned(item.task);
     }
 
     setTimeout(() => {
