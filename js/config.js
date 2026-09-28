@@ -21,9 +21,10 @@ const CONFIG = {
     'https://www.googleapis.com/auth/calendar.events'
   ].join(' '),
 
-  // Noms exacts des onglets du Google Sheet (23 onglets — Enfant_Bibliotheque
-  // reste à créer manuellement dans le Sheet : colonnes ID, Titre,
-  // Date_emprunt, Date_retour, Statut).
+  // Noms exacts des onglets du Google Sheet (24 onglets — Enfant_Bibliotheque
+  // et Vin_Cessions restent à créer manuellement dans le Sheet : colonnes
+  // ID/Titre/Date_emprunt/Date_retour/Statut pour la première, Date seule
+  // pour la seconde).
   SHEETS: {
     CITATIONS: 'Citations',
     MENAGE_TACHES: 'Ménage_Taches',
@@ -47,6 +48,7 @@ const CONFIG = {
     ADMIN: 'Admin',
     CONTACTS: 'Contacts',
     REPAS: 'Repas',
+    VIN_CESSIONS: 'Vin_Cessions',
     STOCK: 'Stock',
     VEHICULE: 'Véhicule',
     COMPTEURS: 'Compteurs'

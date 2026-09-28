@@ -12,6 +12,14 @@
 (function registerRepasTab() {
   const SHEET = CONFIG.SHEETS.REPAS;
 
+  const SHEET_VIN_CESSIONS = CONFIG.SHEETS.VIN_CESSIONS;
+  const CESSION_CONFIRM_MESSAGES = ['Certaine ?', 'Vraiment certaine ?', 'Dernière chance de changer d\'avis 👀'];
+
+  // Compteur affiché sur la carte "Cession du verre", lu une fois au chargement
+  // de l'écran puis incrémenté localement à chaque nouvelle cession validée
+  // (pas de re-fetch : la ligne vient d'être ajoutée par cet écran lui-même).
+  let cessionCount = null;
+
   const JOUR_ORDER = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
   const REPAS_ORDER = ['Petit-déjeuner', 'Midi', 'Soir'];
   const WEEK_BUCKETS = [
@@ -36,6 +44,11 @@
     container.innerHTML = `
       <section class="tab-header">
         <h2>Repas</h2>
+      </section>
+      <section class="card">
+        <h3>🍷 Cession du verre</h3>
+        <p class="text-muted vin-cession-counter" id="vin-cession-counter">Cessions accordées : …</p>
+        <div id="vin-cession-state"></div>
       </section>
       <section id="repas-list" class="task-list">
         <p class="text-muted">Chargement du planning…</p>
@@ -66,7 +79,66 @@
 
     container.querySelector('#repas-add-form').addEventListener('submit', (e) => onSubmit(e, container));
 
-    await renderList(container);
+    renderCessionState(container, false);
+    await Promise.all([renderList(container), initCessionCounter(container)]);
+  }
+
+  // ---------- Cession du verre ----------
+
+  async function initCessionCounter(container) {
+    try {
+      const { rows } = await SheetsAPI.getRows(SHEET_VIN_CESSIONS);
+      cessionCount = rows.length;
+    } catch (err) {
+      console.error(err);
+      cessionCount = null;
+    }
+    renderCessionCounter(container);
+  }
+
+  function renderCessionCounter(container) {
+    const el = container.querySelector('#vin-cession-counter');
+    if (!el) return;
+    el.textContent = cessionCount === null
+      ? 'Cessions accordées : impossible de charger le total'
+      : `Cessions accordées : ${cessionCount}`;
+  }
+
+  function renderCessionState(container, granted) {
+    const el = container.querySelector('#vin-cession-state');
+    if (!el) return;
+
+    if (!granted) {
+      el.innerHTML = '<button type="button" class="btn" id="vin-cession-btn">Je n\'ai plus soif</button>';
+      el.querySelector('#vin-cession-btn').addEventListener('click', () => onCessionRequest(container));
+      return;
+    }
+
+    el.innerHTML = `
+      <p class="vin-cession-status"><span class="vin-cession-pill">Autorisé</span>Cession validée 🍷</p>
+      <button type="button" class="btn btn-secondary" id="vin-cession-reset-btn">Réinitialiser</button>
+    `;
+    el.querySelector('#vin-cession-reset-btn').addEventListener('click', () => renderCessionState(container, false));
+  }
+
+  async function onCessionRequest(container) {
+    for (const message of CESSION_CONFIRM_MESSAGES) {
+      if (!confirm(message)) return;
+    }
+
+    const btn = container.querySelector('#vin-cession-btn');
+    if (btn) btn.disabled = true;
+
+    try {
+      await SheetsAPI.appendRow(SHEET_VIN_CESSIONS, { 'Date': new Date().toISOString() });
+      cessionCount = cessionCount === null ? 1 : cessionCount + 1;
+      renderCessionCounter(container);
+      renderCessionState(container, true);
+    } catch (err) {
+      console.error(err);
+      alert("Impossible d'enregistrer la cession, réessaie.");
+      if (btn) btn.disabled = false;
+    }
   }
 
   function renderJourGroups(container, repasRows, rootContainer) {
