@@ -95,12 +95,19 @@
         if (r['Ingrédients_clés']) metaParts.push(r['Ingrédients_clés']);
         if (r['Prévu_par']) metaParts.push(`prévu par ${r['Prévu_par']}`);
         row.innerHTML = `
-          <div class="info-row-main">
+          <div class="info-row-main info-row-main--clickable">
             <div class="info-row-title">${escapeHtml(r['Repas'] || '')} — ${platHtml(r)}</div>
             <div class="info-row-meta">${escapeHtml(metaParts.join(' · '))}</div>
           </div>
           <button type="button" class="info-row-delete" aria-label="Supprimer ce repas">${Icons.svg('supprimer')}</button>
         `;
+        // Le titre peut contenir un lien vers la recette (platHtml) : ignorer
+        // le clic quand il vise ce lien, pour qu'il ouvre la recette au lieu
+        // de basculer la ligne en édition.
+        row.querySelector('.info-row-main').addEventListener('click', (e) => {
+          if (e.target.closest('a')) return;
+          onEditRepas(row, r, rootContainer);
+        });
         row.querySelector('.info-row-delete').addEventListener('click', () => onDeleteRepas(r, rootContainer));
         wrap.appendChild(row);
       });
@@ -182,6 +189,93 @@
         'Acheté': 'Non',
         'Origine_Repas_ID': String(repasId)
       });
+    }
+  }
+
+  function onEditRepas(row, r, container) {
+    if (row.classList.contains('info-row--editing')) return;
+    row.classList.add('info-row--editing');
+
+    const jourVal = (r['Jour'] || '').trim();
+    const repasVal = (r['Repas'] || '').trim();
+
+    row.innerHTML = `
+      <form class="quick-add-form info-row-edit-form">
+        <select class="info-row-edit-jour">
+          ${JOUR_ORDER.map((j) => `<option value="${j}"${j === jourVal ? ' selected' : ''}>${j}</option>`).join('')}
+        </select>
+        <select class="info-row-edit-repas">
+          ${REPAS_ORDER.map((m) => `<option value="${m}"${m === repasVal ? ' selected' : ''}>${m}</option>`).join('')}
+        </select>
+        <input type="text" class="info-row-edit-plat" placeholder="Plat" value="${escapeAttr(r['Plat'] || '')}" required />
+        <input type="text" class="info-row-edit-ingredients" placeholder="Ingrédients clés (optionnel)" value="${escapeAttr(r['Ingrédients_clés'] || '')}" />
+        <input type="url" class="info-row-edit-url" placeholder="Lien de la recette (optionnel)" value="${escapeAttr(r['URL_recette'] || '')}" />
+        <input type="text" class="info-row-edit-prevupar" placeholder="Prévu par" value="${escapeAttr(r['Prévu_par'] || '')}" />
+        <div class="task-chip-edit-actions">
+          <button type="submit" class="btn">Enregistrer</button>
+          <button type="button" class="btn btn-secondary info-row-edit-cancel">Annuler</button>
+        </div>
+      </form>
+    `;
+
+    row.querySelector('.info-row-edit-cancel').addEventListener('click', () => renderList(container));
+    row.querySelector('.info-row-edit-form').addEventListener('submit', (e) => onSaveEditRepas(e, r, container));
+  }
+
+  // Enregistre les modifications d'un repas déjà planifié (jour, moment,
+  // plat, ingrédients…). La Semaine n'est volontairement pas modifiable ici
+  // (seul le formulaire d'ajout gère "cette semaine" / "semaine +1") ; un
+  // conflit avec un autre repas déjà planifié sur le créneau visé bloque
+  // l'enregistrement plutôt que de l'écraser silencieusement.
+  async function onSaveEditRepas(e, r, container) {
+    e.preventDefault();
+    const form = e.target;
+    const jour = form.querySelector('.info-row-edit-jour').value;
+    const repasMoment = form.querySelector('.info-row-edit-repas').value;
+    const plat = form.querySelector('.info-row-edit-plat').value.trim();
+    if (!plat) return;
+    const ingredientsValue = form.querySelector('.info-row-edit-ingredients').value.trim();
+    const url = form.querySelector('.info-row-edit-url').value.trim();
+    const prevuPar = form.querySelector('.info-row-edit-prevupar').value.trim();
+
+    const saveBtn = form.querySelector('button[type="submit"]');
+    saveBtn.disabled = true;
+
+    try {
+      const { rows } = await SheetsAPI.getRows(SHEET);
+      const semaine = r['Semaine'] || '';
+      const conflict = rows.find(
+        (other) =>
+          other._rowIndex !== r._rowIndex &&
+          (other['Jour'] || '').trim() === jour &&
+          (other['Repas'] || '').trim() === repasMoment &&
+          (other['Semaine'] || '') === semaine
+      );
+      if (conflict) {
+        alert('Un repas est déjà planifié sur ce jour et ce moment — choisis un autre créneau.');
+        saveBtn.disabled = false;
+        return;
+      }
+
+      await SheetsAPI.updateRow(SHEET, r._rowIndex, {
+        ...r,
+        'Jour': jour,
+        'Repas': repasMoment,
+        'Plat': plat,
+        'Ingrédients_clés': ingredientsValue,
+        'Prévu_par': prevuPar,
+        'URL_recette': url
+      });
+
+      if (ingredientsValue) {
+        await syncCoursesFromRepas(r['ID'], ingredientsValue);
+      }
+
+      await renderList(container);
+    } catch (err) {
+      console.error(err);
+      alert("Impossible d'enregistrer ce repas, réessaie.");
+      saveBtn.disabled = false;
     }
   }
 

@@ -930,6 +930,20 @@ details[open] > .dash-card-summary::after {
 
 .info-row-main {
   min-width: 0;
+  flex: 1;
+}
+
+.info-row-main--clickable {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
 .info-row-delete {
@@ -954,6 +968,13 @@ details[open] > .dash-card-summary::after {
 
 .info-row-delete:hover {
   color: #d64545;
+}
+
+.info-row--with-actions > .quick-add-form {
+  flex: 1;
+  background: none;
+  box-shadow: none;
+  padding: 0;
 }
 
 /* ---------- Dossier maladie (Suivi santé, onglet Enfant) ---------- */
