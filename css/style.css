@@ -756,6 +756,20 @@ details[open] > .dash-card-summary::after {
   border-left: 3px solid var(--accent-menage);
 }
 
+/* Ligne de menu (Repas) insérée parmi les événements du jour, dans la
+   cartouche "Cette semaine" — même gabarit que .event-row--grouped mais
+   liseré neutre pour rester visuellement distincte d'un vrai événement
+   d'agenda. */
+.event-row--repas {
+  border-left-color: var(--text-muted);
+}
+
+.event-row-title--repas {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 /* ---------- Groupes par week-end (cartouche "Prochains week-ends") ---------- */
 
 .weekend-group + .weekend-group {

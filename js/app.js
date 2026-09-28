@@ -709,18 +709,106 @@ function renderEventDayGroups(container, events) {
 async function renderDashboardWeekEvents() {
   const el = document.getElementById('dash-week-events');
   try {
-    const events = await CalendarAPI.listUpcomingEvents({ days: 7 });
+    const [events, repasByDay] = await Promise.all([
+      CalendarAPI.listUpcomingEvents({ days: 7 }),
+      getUpcomingRepasByDay(7)
+    ]);
 
-    if (events.length === 0) {
+    if (events.length === 0 && repasByDay.size === 0) {
       el.innerHTML = '<p class="text-muted">Aucun événement dans les 7 prochains jours.</p>';
       return;
     }
 
-    renderEventDayGroups(el, events);
+    renderWeekEventsWithRepas(el, events, repasByDay);
   } catch (err) {
     console.error(err);
     el.innerHTML = '<p class="text-muted">Impossible de charger les événements de l\'agenda.</p>';
   }
+}
+
+const REPAS_MOMENT_ORDER = ['Petit-déjeuner', 'Midi', 'Soir'];
+
+// Menus planifiés (onglet Repas) tombant dans les `days` prochains jours,
+// regroupés par jour (clé dayKey). Reprend la même règle que repas.js pour
+// une ligne sans Semaine : elle appartient à la semaine ISO courante (celle
+// de "maintenant"), pas à celle du jour testé — donc si la fenêtre de 7
+// jours déborde sur la semaine ISO suivante, une ligne sans Semaine ne
+// "fuit" pas sur ces jours-là.
+async function getUpcomingRepasByDay(days) {
+  const map = new Map();
+  const { rows } = await SheetsAPI.getRows(CONFIG.SHEETS.REPAS);
+  const now = new Date();
+  const currentWeek = DateUtils.isoWeekNumber(now);
+  const momentOrderIndex = (value) => {
+    const i = REPAS_MOMENT_ORDER.indexOf((value || '').trim());
+    return i === -1 ? REPAS_MOMENT_ORDER.length : i;
+  };
+
+  for (let i = 0; i < days; i++) {
+    const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
+    const weekdayName = FR_DAYS[date.getDay()];
+    const isoWeek = DateUtils.isoWeekNumber(date);
+
+    const dayRepas = rows
+      .filter((r) => {
+        if ((r['Jour'] || '').trim() !== weekdayName || !(r['Plat'] || '').trim()) return false;
+        const weekNum = DateUtils.parseWeekNumber(r['Semaine']);
+        return (weekNum === null ? currentWeek : weekNum) === isoWeek;
+      })
+      .sort((a, b) => momentOrderIndex(a['Repas']) - momentOrderIndex(b['Repas']));
+
+    if (dayRepas.length > 0) {
+      map.set(dayKey(date), { date, repas: dayRepas });
+    }
+  }
+  return map;
+}
+
+function buildRepasRow(r) {
+  const row = document.createElement('div');
+  row.className = 'event-row event-row--grouped event-row--repas';
+  row.innerHTML = `
+    <span class="event-row-body">
+      <span class="event-row-title event-row-title--repas">
+        <span class="task-chip-icon">${Icons.svg('repas')}</span>
+        ${escapeHtml(r['Repas'] || '')} : ${platHtml(r)}
+      </span>
+    </span>
+  `;
+  return row;
+}
+
+// Comme renderEventDayGroups, mais fusionne dans chaque groupe de jour les
+// menus planifiés (Repas) avec les événements d'agenda — utilisé uniquement
+// par la cartouche "Cette semaine" (7 prochains jours). Les menus sont listés
+// avant les événements du jour puisqu'ils n'ont pas d'heure exacte à trier.
+function renderWeekEventsWithRepas(container, events, repasByDay) {
+  container.innerHTML = '';
+
+  const eventGroups = new Map(groupEventsByDay(events).map((g) => [dayKey(g.date), g]));
+  const allKeys = new Set([...eventGroups.keys(), ...repasByDay.keys()]);
+  const sortedDays = [...allKeys]
+    .map((key) => (eventGroups.get(key) || repasByDay.get(key)).date)
+    .sort((a, b) => a - b);
+
+  sortedDays.forEach((date) => {
+    const key = dayKey(date);
+    const block = document.createElement('div');
+    block.className = 'day-group';
+    block.innerHTML = `<h5 class="day-group-title">${escapeHtml(formatDayGroupLabel(date))}</h5>`;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'event-rows';
+
+    const dayRepas = repasByDay.get(key);
+    if (dayRepas) dayRepas.repas.forEach((r) => wrap.appendChild(buildRepasRow(r)));
+
+    const eventGroup = eventGroups.get(key);
+    if (eventGroup) eventGroup.events.forEach((ev) => wrap.appendChild(buildEventRowForGroup(ev)));
+
+    block.appendChild(wrap);
+    container.appendChild(block);
+  });
 }
 
 // Regroupe les 4 prochains week-ends (samedi-dimanche) — celui en cours
